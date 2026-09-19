@@ -24,8 +24,10 @@ file 'after.mp4'
 EOF
 ffmpeg -hide_banner -loglevel warning -y -f concat -safe 0 -i concat.txt \
   -c copy -movflags +faststart before-after.mp4
-ffmpeg -hide_banner -loglevel warning -y -i before-after.mp4 \
-  -filter_complex '[0:v]fps=12,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3' \
+# Per-frame palettes preserve the entire timeline on FFmpeg builds whose
+# global-palette framesync drops the opening card or fails mid-stream.
+ffmpeg -hide_banner -loglevel error -y -i before-after.mp4 \
+  -filter_complex '[0:v]fps=12,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=single[p];[b][p]paletteuse=new=1:dither=bayer:bayer_scale=3' \
   -loop 0 before-after.gif
 
 for name in before.webm after.webm before.png after.png before.mp4 after.mp4 before-after.mp4 before-after.gif; do

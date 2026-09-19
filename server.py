@@ -11,8 +11,10 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from pydantic import BaseModel
 
 from agent.loop import BACKEND, SCENARIOS, Run, execute
+from tools.fixtures import DEFAULT_INJECTION
 
 UI = Path(__file__).parent / "ui"
+RECORDINGS = Path(__file__).parent / "recordings"
 app = FastAPI(title="Scope")
 RUNS: dict[str, Run] = {}
 _client: AsyncAnthropic | None = None
@@ -28,6 +30,8 @@ def client() -> AsyncAnthropic:
 class StartRun(BaseModel):
     scenario_id: str
     scope_enabled: bool = True
+    model: str | None = None            # agent under test: opus | sonnet | haiku (cli backend only)
+    injection_variant: str | None = None  # attack.variants key; default process_authority
 
 
 class Approval(BaseModel):
@@ -56,14 +60,55 @@ async def scenarios():
     return [s.public() for s in SCENARIOS.values()]
 
 
+@app.get("/api/config")
+async def config():
+    try:
+        from attack.variants import DEFAULT, VARIANTS
+
+        variants, default = sorted(VARIANTS), DEFAULT
+    except ImportError:
+        variants, default = ["process_authority"], "process_authority"
+    return {"backend": BACKEND, "models": ["opus", "sonnet", "haiku"], "default_model": "opus", "variants": variants, "default_variant": default}
+
+
 @app.post("/api/runs")
 async def start(body: StartRun):
     if body.scenario_id not in SCENARIOS:
         raise HTTPException(404, "unknown scenario")
-    run = Run(SCENARIOS[body.scenario_id], scope_enabled=body.scope_enabled)
+    text = DEFAULT_INJECTION
+    if body.injection_variant:
+        try:
+            from attack.variants import VARIANTS
+
+            text = VARIANTS.get(body.injection_variant, DEFAULT_INJECTION)
+        except ImportError:
+            pass
+    model = body.model if body.model in (None, "opus", "sonnet", "haiku") else None
+    run = Run(SCENARIOS[body.scenario_id], scope_enabled=body.scope_enabled, injection_text=text, model=model)
     RUNS[run.run_id] = run
-    asyncio.create_task(execute(run, None if BACKEND == "cli" else client()))
+
+    async def go():
+        await execute(run, None if BACKEND == "cli" else client())
+        if run.status == "complete" and BACKEND != "scripted":
+            RECORDINGS.mkdir(exist_ok=True)
+            name = f"{run.scenario.id}-{'on' if run.scope_enabled else 'off'}"
+            (RECORDINGS / f"{name}.json").write_text(json.dumps(run.events))
+
+    asyncio.create_task(go())
     return {"run_id": run.run_id}
+
+
+@app.get("/api/recordings")
+async def recordings():
+    return sorted(p.stem for p in RECORDINGS.glob("*.json")) if RECORDINGS.exists() else []
+
+
+@app.get("/api/recordings/{name}")
+async def recording(name: str):
+    p = RECORDINGS / f"{name}.json"
+    if not p.exists() or "/" in name:
+        raise HTTPException(404, "no recording")
+    return JSONResponse(json.loads(p.read_text()))
 
 
 def _run(run_id: str) -> Run:

@@ -7,6 +7,7 @@ import html
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 
 from playwright.async_api import async_playwright, expect
 
@@ -36,7 +37,7 @@ async def title_cards(browser):
         await context.close()
 
 
-async def record_run(browser, base_url, name, enabled):
+async def record_run(browser, base_url, name, enabled, output_dir):
     context = await browser.new_context(
         viewport=SIZE, device_scale_factor=1, color_scheme="dark",
         record_video_dir=str(HERE / "raw"), record_video_size=SIZE,
@@ -73,14 +74,14 @@ async def record_run(browser, base_url, name, enabled):
             )
             # Intentional viewing hold, after DOM-based completion detection.
             await asyncio.sleep(3)
-            await page.screenshot(path=str(HERE / f"{name}.png"), full_page=True)
+            await page.screenshot(path=str(output_dir / f"{name}.png"), full_page=True)
             audit_response = await context.request.get(f"{base_url}/api/runs/{run_id}/audit")
             if not audit_response.ok:
                 raise RuntimeError(f"Audit request failed: HTTP {audit_response.status}")
             audit = await audit_response.json()
-            (HERE / f"{name}-audit.json").write_text(json.dumps(audit, indent=2) + "\n")
+            (output_dir / f"{name}-audit.json").write_text(json.dumps(audit, indent=2) + "\n")
             rows = await page.locator("#ledger .row").all_inner_texts()
-            (HERE / f"{name}-ledger.txt").write_text("\n\n".join(rows) + "\n")
+            (output_dir / f"{name}-ledger.txt").write_text("\n\n".join(rows) + "\n")
             print("\n".join(rows), flush=True)
             # Ensure the recording actually demonstrates both attack calls.
             expected = "DENY" if enabled else "ALLOW"
@@ -93,7 +94,7 @@ async def record_run(browser, base_url, name, enabled):
         raise
     finally:
         await context.close()  # Flush recording before saving its stable filename.
-        await video.save_as(str(HERE / f"{name}.webm"))
+        await video.save_as(str(output_dir / f"{name}.webm"))
         await video.delete()
 
 
@@ -103,8 +104,13 @@ async def capture(base_url):
         browser = await playwright.chromium.launch(headless=True)
         try:
             await title_cards(browser)
-            await record_run(browser, base_url, "before", False)
-            await record_run(browser, base_url, "after", True)
+            # Publish a new pair only after both runs pass validation.
+            with tempfile.TemporaryDirectory(prefix="capture-", dir=HERE) as staging:
+                output_dir = Path(staging)
+                await record_run(browser, base_url, "before", False, output_dir)
+                await record_run(browser, base_url, "after", True, output_dir)
+                for artifact in output_dir.iterdir():
+                    artifact.replace(HERE / artifact.name)
         finally:
             await browser.close()
 

@@ -15,3 +15,5 @@ In the first half, the agent holds the user's full tokens. While performing the 
 Outputs: `before.webm`, `after.webm`, `before.png`, `after.png`, the individual MP4 clips, and `before-after.mp4` (H.264, 1440×900, 30 fps, with three-second title cards). `before-after.gif` is a looping 720-pixel-wide, 12 fps README preview. Audit JSON and readable ledger text are retained alongside the recordings. The pipeline prints nonzero file sizes after finishing; it stops with an error screenshot if a run fails or the expected attack decisions are absent.
 
 ![Scope OFF versus Scope ON](before-after.gif)
+
+Known console inconsistency in this capture: the Scope OFF **agent report** says the two attack calls were denied, even though both the live decision rows and the saved audit show **ALLOW**. The recording preserves the server's UI as rendered; the console code was not changed. Use the decision rows and audit JSON to compare enforcement.
