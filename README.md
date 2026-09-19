@@ -82,7 +82,7 @@ Requirements: Python 3.13 and `uv`. The default backend needs the `claude` CLI, 
 ```
 uv run python server.py                       # SCOPE_BACKEND=cli by default; open http://localhost:8000
 SCOPE_BACKEND=scripted uv run python server.py # deterministic offline replay, scripted agent
-uv run pytest                                  # 19 tests
+uv run pytest                                  # 21 tests
 uv run python attack/demo.py --scope off       # terminal before, injection succeeds
 uv run python attack/demo.py --scope on        # terminal after, injection contained
 uv run python bench/run.py --n 5 --models opus,sonnet \

@@ -24,10 +24,16 @@ RUNS: dict[str, Run] = {}
 _client: AsyncAnthropic | None = None
 
 
-def client() -> AsyncAnthropic:
+def client():
+    """The model client for the in-process backends. Scripted mode injects the deterministic stand-in."""
     global _client
     if _client is None:
-        _client = AsyncAnthropic(timeout=180, max_retries=2)
+        if BACKEND == "scripted":
+            from agent.scripted import ScriptedClient
+
+            _client = ScriptedClient()
+        else:
+            _client = AsyncAnthropic(timeout=180, max_retries=2)
     return _client
 
 
@@ -92,7 +98,7 @@ async def start(body: StartRun):
     RUNS[run.run_id] = run
 
     async def go():
-        await execute(run, None if BACKEND == "cli" else client())
+        await execute(run, None if BACKEND == "cli" else client(), "sdk" if BACKEND == "scripted" else None)
         if run.status == "complete" and BACKEND != "scripted":
             RECORDINGS.mkdir(exist_ok=True)
             name = f"{run.scenario.id}-{'on' if run.scope_enabled else 'off'}"

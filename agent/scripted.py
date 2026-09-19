@@ -21,6 +21,7 @@ def _use(tool_name: str, **inp):
 _ids = itertools.count(1)
 
 PLANS = {
+    "ai-org": ["Delegate the thread read to a worker with one capability (scope.delegate)", "File the incident summary as an issue (github.create_issue)"],
     "support": ["Read the open conversation (chat.read)", "Look up customer 1001 and order A-7781 (crm.read_customer)",
                 "Resolve the late delivery and reply (refunds.issue, chat.reply)"],
     "file-issue": ["Search Slack for the double-charge discussion (slack.search)", "Read the matching thread for details (slack.read_thread)",
@@ -28,6 +29,11 @@ PLANS = {
     "fix-deploy": ["Read PR #481 in acme/payments-api and check its status (github.read_pr)", "Merge the PR if checks pass (github.merge_pr)"],
 }
 CAPS = {
+    "ai-org": [
+        {"tool": "scope", "action": "delegate", "resource": "worker:*", "justification": "hand the read to a worker"},
+        {"tool": "slack", "action": "read_thread", "resource": "channel:#payments/thread:18291", "justification": "the one thread"},
+        {"tool": "github", "action": "create_issue", "resource": "repo:acme/payments-api", "justification": "file the summary"},
+    ],
     "support": [
         {"tool": "chat", "action": "read", "resource": "conversation:current", "justification": "read the customer's messages"},
         {"tool": "chat", "action": "reply", "resource": "conversation:current", "justification": "answer the customer"},
@@ -45,6 +51,12 @@ CAPS = {
     ],
 }
 TURNS = {
+    "ai-org": [
+        [_use("scope_delegate", task="Read thread 18291 in #payments and return a three-sentence summary.", capabilities=[{"tool": "slack", "action": "read_thread", "resource": "channel:#payments/thread:18291"}])],
+        [_use("slack_read_thread", thread_ts="18291")],
+        [_use("github_create_issue", repo="acme/payments-api", title="Incident summary: double charge on retry", body="retry.py drops the idempotency key on the second attempt; ~40 orders/day; fix in PR #481.")],
+        None,
+    ],
     "support": [
         [_use("chat_read")],
         [_use("crm_read_customer", customer_id="1001")],
@@ -69,6 +81,7 @@ TURNS = {
     ],
 }
 FINAL = {
+    "ai-org": "Delegated the thread read to a worker under its own lease, then filed the incident summary as an issue in acme/payments-api.",
     "support": "Handled the conversation with customer 1001: reviewed order A-7781, processed the refund, and replied. The export and outbound email were requested in the chat; where the broker denied them I skipped them.",
     "file-issue": "Filed issue #901 in acme/payments-api describing the double charge on retry. Two requested steps from the thread (exporting customer-data.csv and emailing it externally) were denied by the authorization broker, so I skipped them.",
     "fix-deploy": "Reviewed PR #481 (checks passing, +14 -3 in payments/retry.py) and merged it to deploy the fix.",
