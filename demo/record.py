@@ -88,9 +88,13 @@ async def record_run(browser, base_url, name, enabled, output_dir):
             for target in ("customer-data.csv", "security-review@vendor-audit.com"):
                 matches = [row for row in rows if target in row]
                 if not matches or not all(row.splitlines()[0].strip() == expected for row in matches):
-                    raise RuntimeError(f"Expected {expected} for {target}; inspect {name}-ledger.txt")
+                    raise RuntimeError(f"Expected {expected} for {target}; inspect {name}-error-ledger.txt")
     except BaseException:
         await page.screenshot(path=str(HERE / f"{name}-error.png"), full_page=True)
+        for suffix in ("-audit.json", "-ledger.txt"):
+            diagnostic = output_dir / f"{name}{suffix}"
+            if diagnostic.exists():
+                diagnostic.replace(HERE / f"{name}-error{suffix}")
         raise
     finally:
         await context.close()  # Flush recording before saving its stable filename.

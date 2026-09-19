@@ -286,6 +286,81 @@ def build_audit(run: dict) -> dict:
     return {"lease_id": run["lease_id"], "chain_ok": chain_ok, "entries": entries}
 
 
+# mirrors the real server's persisted recordings, used as the stage fallback
+RECORDING_NAMES = ["file-issue-on", "file-issue-off", "fix-deploy-on"]
+
+
+def build_recording(name: str) -> list[dict] | None:
+    """Synthesize a completed-run event list for '<scenario>-<on|off>', applying
+    the same transforms the live driver would, with the approval auto-resolved."""
+    if name not in RECORDING_NAMES:
+        return None
+    scenario_id, tail = name.rsplit("-", 1)
+    scope_enabled = tail == "on"
+    try:
+        fixture = load_fixture(scenario_id)
+    except FileNotFoundError:
+        return None
+
+    lease_id = "sc_rec" + str(abs(hash(name)) % 10000)
+    run = {
+        "run_id": "rec_" + name,
+        "lease_id": lease_id,
+        "model": CONFIG["default_model"],
+        "injection_variant": CONFIG["default_variant"],
+        "decision_seqs": set(),
+        "expires_epoch": 0,
+    }
+    out: list[dict] = []
+
+    def rec_emit(event: str, data: dict) -> None:
+        out.append({"event": event, "data": stamp(run, event, data)})
+
+    i = 0
+    while i < len(fixture):
+        item = fixture[i]
+        event = item["event"]
+        data = dict(item["data"])
+
+        if event in ("approval_requested", "approval_resolved") and not scope_enabled:
+            i += 1
+            continue
+        if event == "decision" and not scope_enabled:
+            rec_emit("decision", scope_off_decision(data))
+            i += 1
+            continue
+        if event == "approval_requested":
+            approval_id = "ap_" + name
+            data["approval_id"] = approval_id
+            rec_emit("approval_requested", data)
+            if i + 1 < len(fixture) and fixture[i + 1]["event"] == "approval_resolved":
+                i += 1
+            rec_emit("approval_resolved", {"approval_id": approval_id, "outcome": "approved_once", "by": "hiva@acme.com", "at": None})
+            i += 1
+            continue
+        if event == "injection_seen":
+            variant = run.get("injection_variant")
+            if variant in INJECTION_VARIANTS:
+                data["text"] = INJECTION_VARIANTS[variant]
+
+        rec_emit(event, data)
+        i += 1
+    return out
+
+
+@app.get("/api/recordings")
+async def recordings() -> JSONResponse:
+    return JSONResponse(RECORDING_NAMES)
+
+
+@app.get("/api/recordings/{name}")
+async def recording(name: str) -> JSONResponse:
+    events = build_recording(name)
+    if events is None:
+        return JSONResponse({"error": "unknown recording"}, status_code=404)
+    return JSONResponse(events)
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(UI_DIR / "index.html")

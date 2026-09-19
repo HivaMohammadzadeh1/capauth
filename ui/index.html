@@ -25,9 +25,9 @@ h1,h2,h3,h4{margin:0}
 button{font-family:inherit}
 a{color:var(--accent)}
 
-/* top bar: one row */
+/* top bar: identity on row 1, controls on row 2 */
 .top{
-  display:flex; flex-wrap:nowrap; align-items:center; gap:14px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:12px 14px;
   padding:14px 24px; border-bottom:1px solid var(--line);
   background:var(--surface); position:sticky; top:0; z-index:20;
 }
@@ -36,12 +36,18 @@ a{color:var(--accent)}
 .idline{display:flex; align-items:center; gap:16px; flex:1; min-width:0; overflow:hidden; white-space:nowrap}
 .kv{color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis}
 .kv b{color:var(--ink-2); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
-.controls{display:flex; align-items:center; gap:10px; flex:none}
+.controls{display:flex; align-items:center; gap:10px; flex:1 1 100%; flex-wrap:wrap; justify-content:flex-end}
 select{
   background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
   border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px; max-width:220px;
 }
+select.mini{padding:7px 8px; font-size:12px; max-width:150px}
 select:focus-visible,.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+#backendTag{display:none; flex:none}
+#backendTag.on{display:inline}
+#backendTag .tagword{color:var(--accent)}
+.planner-note{color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
+.planner-note b{color:var(--ink-2); font-weight:500}
 .btn{
   border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink);
   border-radius:8px; padding:8px 13px; font-size:13px; cursor:pointer; white-space:nowrap;
@@ -67,6 +73,8 @@ select:focus-visible,.btn:focus-visible{outline:2px solid var(--accent); outline
   padding:5px 11px; border-radius:999px; flex:none;
 }
 .rec.on{display:inline-flex}
+.rec.live{color:var(--accent); border-color:rgba(90,209,219,.4); background:rgba(90,209,219,.1)}
+.rec.live .blip{background:var(--accent)}
 .rec .blip{width:8px; height:8px; border-radius:50%; background:var(--limited); animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
@@ -197,16 +205,20 @@ td .mono{font-size:11.5px}
     <span class="kv">agent <b id="agentId">-</b></span>
     <span class="kv">for <b id="obo">-</b></span>
     <span class="kv">lease <b id="leaseId">-</b></span>
+    <span class="kv" id="backendTag"></span>
   </div>
   <div class="controls">
     <span class="rec" id="recBadge"><span class="blip"></span>recording</span>
     <select id="scenario" aria-label="scenario"></select>
+    <select id="modelSelect" class="mini" aria-label="agent model" title="agent model"></select>
+    <select id="injectionSelect" class="mini" aria-label="injection variant" title="injection variant"></select>
     <label class="switch" title="turn Scope enforcement on or off">
       <input type="checkbox" id="scopeToggle" checked>
       <span class="track"></span>
       <b id="scopeLabel">on</b>
     </label>
     <button class="btn primary" id="runBtn">Run task</button>
+    <select id="replaySelect" class="mini" aria-label="recording to replay" title="recording to replay"></select>
     <button class="btn" id="replayBtn" disabled>Replay</button>
     <button class="btn" id="exportBtn" disabled>Export audit</button>
   </div>
@@ -269,11 +281,23 @@ const STATE = {};
 let current = null;      // active run state
 let es = null;           // EventSource
 let ringTimer = null;
+let replayTimer = null;  // recursive setTimeout handle for replay feed
+let CONFIG = null;       // GET /api/config: models, variants, backend
+let RECORDINGS = [];     // GET /api/recordings: names like file-issue-on
 
 const $ = (id) => document.getElementById(id);
 const DEC_LABEL = {ALLOW:"ALLOW", ALLOW_LIMITED:"LIMITED", HUMAN_APPROVAL:"APPROVAL", DENY:"DENY"};
 const C = 2 * Math.PI * 27; // ring circumference
 const ARC_ACTIVE = "#5AD1DB", ARC_IDLE = "#3A4859"; // literal so SVG stroke resolves
+const BACKEND_TAG = {cli:"live via Claude Code", scripted:"scripted replay"};
+
+const stripId = (s) => String(s == null ? "" : s).replace(/^(user:|agent:)/, "");
+
+function setRunning(on){
+  const b = $("runBtn");
+  b.disabled = on;
+  b.textContent = on ? "running, live via Claude Code" : "Run task";
+}
 
 function hms(iso){
   if(!iso) return "--:--:--";
@@ -290,21 +314,63 @@ function humanRes(r){
   return s.replace(/\/\*$/, "");
 }
 
-// ---- scenarios ----
+// ---- config, scenarios, recordings ----
+async function loadConfig(){
+  try{
+    const res = await fetch("/api/config");
+    CONFIG = await res.json();
+    const ms = $("modelSelect"); ms.innerHTML = "";
+    (CONFIG.models || []).forEach((m) => {
+      const o = document.createElement("option");
+      o.value = m; o.textContent = m;
+      if(m === CONFIG.default_model) o.selected = true;
+      ms.appendChild(o);
+    });
+    const is = $("injectionSelect"); is.innerHTML = "";
+    (CONFIG.variants || []).forEach((v) => {
+      const o = document.createElement("option");
+      o.value = v; o.textContent = v.replace(/_/g, " ");
+      if(v === CONFIG.default_variant) o.selected = true;
+      is.appendChild(o);
+    });
+    syncInjectionEnabled();
+  }catch(e){ console.error("config failed", e); }  // selects stay empty; runs use server defaults
+}
+function syncInjectionEnabled(){
+  const isFileIssue = $("scenario").value === "file-issue";
+  const is = $("injectionSelect");
+  is.disabled = !isFileIssue;
+  is.title = isFileIssue ? "injection variant" : "injection applies to file-issue only";
+}
+async function loadRecordings(){
+  try{
+    const res = await fetch("/api/recordings");
+    if(!res.ok){ RECORDINGS = []; return; }
+    RECORDINGS = await res.json();
+    if(Array.isArray(RECORDINGS) && RECORDINGS.length){
+      populateReplaySelect();
+      $("replayBtn").disabled = false;
+    }else{
+      $("replaySelect").innerHTML = "";
+    }
+  }catch(e){ /* no recordings endpoint; replay still works after a run */ RECORDINGS = []; }
+}
+
 async function loadScenarios(){
   try{
     const res = await fetch("/api/scenarios");
     const list = await res.json();
     const sel = $("scenario");
     sel.innerHTML = "";
-    list.forEach((s, i) => {
+    list.forEach((s) => {
       const o = document.createElement("option");
       o.value = s.id;
-      o.textContent = (i + 1) + " · " + s.title;
+      o.textContent = s.title;
       o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of;
       sel.appendChild(o);
     });
     syncScenarioHint();
+    syncInjectionEnabled();
   }catch(e){ console.error("scenarios failed", e); }
 }
 function syncScenarioHint(){
@@ -312,9 +378,11 @@ function syncScenarioHint(){
   if(!o) return;
   if(!current){
     $("task").textContent = o.dataset.task;
-    $("agentId").textContent = o.dataset.agent;
-    $("obo").textContent = o.dataset.obo;
+    $("agentId").textContent = stripId(o.dataset.agent);
+    $("obo").textContent = stripId(o.dataset.obo);
     $("leaseId").textContent = "-";
+    $("backendTag").className = "kv";
+    $("backendTag").textContent = "";
     $("plan").innerHTML = '<li class="hint">The plan appears here on Run task.</li>';
     $("caps").innerHTML = '<div class="hint">Run task to issue a lease</div>';
     $("leaseState").textContent = "";
@@ -326,38 +394,49 @@ async function runTask(){
   stopEverything();
   const scenario_id = $("scenario").value;
   const scope_enabled = $("scopeToggle").checked;
+  const body = {scenario_id, scope_enabled};
+  if($("modelSelect").value) body.model = $("modelSelect").value;
+  if($("injectionSelect").value) body.injection_variant = $("injectionSelect").value;
   let run_id;
   try{
     const res = await fetch("/api/runs", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({scenario_id, scope_enabled})
+      body: JSON.stringify(body)
     });
     const j = await res.json();
     run_id = j.run_id;
   }catch(e){ alert("could not start run"); return; }
 
   current = freshRun(run_id, "live");
+  current.serverRun = true;
   STATE[run_id] = current;
   resetView();
+  $("recBadge").className = "rec";
   $("exportBtn").disabled = true;
-  $("replayBtn").disabled = true;
+  setRunning(true);
 
   es = new EventSource("/api/runs/" + run_id + "/events");
   ["run_started","plan","lease_issued","tool_call","decision","approval_requested",
    "approval_resolved","tool_result","injection_seen","agent_message","lease_revoked",
    "run_finished","error"].forEach((t) => {
-    es.addEventListener(t, (ev) => handle(t, JSON.parse(ev.data)));
+    es.addEventListener(t, (ev) => {
+      if(ev == null || ev.data == null || ev.data === "") return; // native EventSource error has no data
+      try{ handle(t, JSON.parse(ev.data)); }catch(err){ console.error("bad event", t, err); }
+    });
   });
-  es.onerror = () => {}; // stream closes after run_finished; nothing to do
+  es.onerror = () => {}; // stream closes after run_finished; run_finished re-enables the button
 }
 
 function freshRun(run_id, mode){
-  return {run_id, mode, leaseId:null, ttl:600, revoked:false, rows:new Map(), finished:false};
+  return {run_id, mode, leaseId:null, ttl:600, issuedMs:0, expiresMs:0,
+          revoked:false, rows:new Map(), finished:false, serverRun:false};
 }
 
 function stopEverything(){
   if(es){ es.close(); es = null; }
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
+  if(replayTimer){ clearTimeout(replayTimer); replayTimer = null; }
+  $("recBadge").className = "rec";
 }
 
 function resetView(){
@@ -392,12 +471,22 @@ function handle(type, d){
 }
 
 function onRunStarted(d){
-  $("agentId").textContent = d.agent || "-";
-  $("obo").textContent = d.on_behalf_of || "-";
+  $("agentId").textContent = stripId(d.agent) || "-";
+  $("obo").textContent = stripId(d.on_behalf_of) || "-";
   $("task").textContent = d.task || "";
+  setBackendTag(d.backend, d.model);
   if($("ledger").childElementCount === 0){
     $("ledger").innerHTML = '<div class="empty">agent is planning...</div>';
   }
+}
+
+function setBackendTag(backend, model){
+  const el = $("backendTag");
+  if(!backend && !model){ el.className = "kv"; el.textContent = ""; return; }
+  const word = BACKEND_TAG[backend] || backend || "";
+  el.className = "kv on";
+  el.innerHTML = (word ? '<span class="tagword">' + esc(word) + "</span>" : "") +
+    (model ? " <b>" + esc(model) + "</b>" : "");
 }
 
 function onPlan(d){
@@ -412,12 +501,27 @@ function onLease(d){
   const lease = d.lease || {};
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
+  current.issuedMs = Date.parse(lease.issued_at);
+  current.expiresMs = Date.parse(lease.expires_at);
   $("leaseId").textContent = lease.lease_id || "-";
   $("leaseMeta").innerHTML =
     "issued <b>" + hms(lease.issued_at) + "</b><br>expires <b>" + hms(lease.expires_at) +
     "</b><br>ceiling <b>policy/" + esc((lease.principal || "agent").split(":").pop()) + ".yaml</b>";
   renderCaps(lease, d.excluded || []);
-  startRing(current.ttl);
+  renderPlanner(d.planner);
+  startRing();
+}
+
+function renderPlanner(planner){
+  const host = $("caps");
+  const old = host.querySelector(".planner-note");
+  if(old) old.remove();
+  const rationale = planner && planner.rationale;
+  if(!rationale || rationale === "scripted") return;
+  const div = document.createElement("div");
+  div.className = "planner-note";
+  div.innerHTML = "<b>why this lease</b> " + esc(rationale);
+  host.appendChild(div);
 }
 
 function renderCaps(lease, excluded){
@@ -461,7 +565,7 @@ function onDecision(d){
   const denyCls = d.decision === "DENY" ? " deny" : "";
   let why = esc(d.reason || "");
   if(d.decision === "ALLOW_LIMITED" && d.narrowed_to){
-    why += ' <span class="tag-narrow">→ narrowed to ' + esc(d.narrowed_to) + "</span>";
+    why += ' <span class="tag-narrow">narrowed to ' + esc(d.narrowed_to) + "</span>";
   }
   inner += '<div class="why' + denyCls + '">' + why + "</div>";
   if(d.provenance) inner += '<div class="prov">' + esc(d.provenance) + "</div>";
@@ -538,18 +642,21 @@ function onRevoked(d){
 
 function onFinished(d){
   current.finished = true;
+  setRunning(false);
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
-  greyRing(d && d.status === "expired" ? "expired" : "revoked");
+  const ended = d && (d.status === "expired") ? "expired" : "revoked";
+  greyRing(ended);
   const led = $("ledger");
   const early = d.early_by_seconds || 0;
   const mm = Math.floor(early / 60), ss = early % 60;
   const earlyStr = early >= 60 ? (mm + " min " + ss + " s") : (early + " s");
+  const verb = d.status === "failed" ? "Task failed" : d.status === "expired" ? "Task expired" : "Task complete";
   const div = document.createElement("div"); div.className = "end";
-  div.textContent = "Task complete. Lease " + (current.leaseId || "") +
-    " revoked at " + hms(d.finished_at) + ", " + earlyStr + " early. " +
+  div.textContent = verb + ". Lease " + (current.leaseId || "") +
+    " " + ended + " at " + hms(d.finished_at) + ", " + earlyStr + " early. " +
     (d.decisions || 0) + " decisions, chain " + (d.chain_ok ? "intact" : "broken") + ".";
   led.appendChild(div); div.scrollIntoView({block:"nearest"});
-  $("exportBtn").disabled = false;
+  $("exportBtn").disabled = !current.serverRun;   // audit export needs a real server run
   $("replayBtn").disabled = false;
   if(es){ es.close(); es = null; }
 }
@@ -574,19 +681,30 @@ function greyRing(state){
   ls.textContent = state || "revoked";
   ls.className = "lease-state ended";
 }
-function startRing(ttl){
-  const start = Date.now();
-  const total = ttl * 1000;
+function startRing(){
   $("leaseCard").classList.remove("dim");
   const ls = $("leaseState");
   ls.textContent = "active";
   ls.className = "lease-state active";
+
+  // live: remaining = expires_at - client clock, span = expires_at - issued_at.
+  // replay: recording times are in the past, so anchor at now using ttl.
+  const liveTimes = current.mode !== "replay" && current.expiresMs > 0 && current.issuedMs > 0;
+  let total, remainingAt;
+  if(liveTimes){
+    total = current.expiresMs - current.issuedMs;
+    if(!(total > 0)) total = (current.ttl || 600) * 1000;
+    remainingAt = () => current.expiresMs - Date.now();
+  }else{
+    const anchor = Date.now();
+    total = (current.ttl || 600) * 1000;
+    remainingAt = () => total - (Date.now() - anchor);
+  }
+
   const tick = () => {
     if(current.revoked || current.finished) return;
-    const elapsed = Date.now() - start;
-    const remaining = Math.max(0, total - elapsed);
-    const frac = remaining / total;
-    setArc(frac, true);
+    const remaining = Math.max(0, remainingAt());
+    setArc(total > 0 ? remaining / total : 0, true);
     const secs = Math.round(remaining / 1000);
     const m = Math.floor(secs / 60), s = secs % 60;
     $("ringText").textContent = m + ":" + String(s).padStart(2, "0");
@@ -599,7 +717,7 @@ function startRing(ttl){
 
 // ---- audit export ----
 async function exportAudit(){
-  if(!current) return;
+  if(!current || !current.serverRun) return;   // recordings have no server-side audit
   try{
     const res = await fetch("/api/runs/" + current.run_id + "/audit");
     const a = await res.json();
@@ -613,49 +731,105 @@ function renderAudit(a){
   badge.className = "badge " + (a.chain_ok ? "ok" : "bad");
   badge.textContent = a.chain_ok ? "chain intact" : "chain broken";
   const t = $("auditTable");
-  let html = "<tr><th>seq</th><th>call</th><th>decision</th><th>reason</th><th>approval</th><th class='mono'>prev → hash</th></tr>";
+  let html = "<tr><th>seq</th><th>call</th><th>decision</th><th>reason</th><th>approval</th><th class='mono'>prev hash, hash</th></tr>";
   (a.entries || []).forEach((e) => {
     const call = e.call || {};
     const callStr = call.tool + "." + call.action + "(" + humanRes(call.resource) + ")";
-    const appr = e.approval ? (e.approval.outcome + " by " + e.approval.by) : "—";
+    const appr = e.approval ? (e.approval.outcome + " by " + e.approval.by) : "";
     html += "<tr><td class='mono'>" + e.seq + "</td>" +
       "<td class='mono'>" + esc(callStr) + "</td>" +
-      "<td class='mono'>" + esc(e.decision) + (e.narrowed_to ? " → " + esc(e.narrowed_to) : "") + "</td>" +
+      "<td class='mono'>" + esc(e.decision) + (e.narrowed_to ? ", narrowed to " + esc(e.narrowed_to) : "") + "</td>" +
       "<td>" + esc(e.reason) + "</td>" +
       "<td>" + esc(appr) + "</td>" +
-      "<td class='mono hash'>" + esc(e.prev_hash) + " → " + esc(e.hash) + "</td></tr>";
+      "<td class='mono hash'>" + esc(e.prev_hash) + ", " + esc(e.hash) + "</td></tr>";
   });
   t.innerHTML = html;
 }
 
-// ---- replay ----
-async function replayRun(){
-  if(!current) return;
-  const run_id = current.run_id;
-  let events;
-  try{
-    const res = await fetch("/api/runs/" + run_id + "/replay");
-    events = await res.json();
-  }catch(e){ console.error("replay failed", e); return; }
+// ---- recordings + replay ----
+function parseRecording(name){
+  let simulated = false, core = name;
+  if(core.endsWith("-simulated")){ simulated = true; core = core.slice(0, -"-simulated".length); }
+  const cut = core.lastIndexOf("-");
+  const scenario = cut >= 0 ? core.slice(0, cut) : core;
+  const scope = cut >= 0 ? core.slice(cut + 1) : "";
+  return {name, simulated, scenario, scope};
+}
+function recordingLabel(r){
+  const kind = r.simulated ? "simulated agent" : "live agent";
+  return r.scenario + " " + r.scope + " · " + kind;
+}
+function recordingBadge(r){
+  return r.simulated ? "recording, simulated agent (follows the injection)" : "recording, live agent";
+}
+function populateReplaySelect(){
+  const sel = $("replaySelect");
+  sel.innerHTML = "";
+  RECORDINGS.forEach((name) => {
+    const r = parseRecording(name);
+    const o = document.createElement("option");
+    o.value = name; o.textContent = recordingLabel(r);
+    o.dataset.simulated = r.simulated ? "1" : "";
+    sel.appendChild(o);
+  });
+  selectDefaultRecording();
+}
+function selectDefaultRecording(){
+  // default = the -simulated recording matching the current scenario and toggle
+  const scenario = $("scenario").value;
+  const scope = $("scopeToggle").checked ? "on" : "off";
+  const want = [scenario + "-" + scope + "-simulated", scenario + "-" + scope];
+  const sel = $("replaySelect");
+  for(const name of want){
+    if(RECORDINGS.includes(name)){ sel.value = name; return; }
+  }
+}
 
+async function replayRun(){
+  // 1) prefer the recording chosen in the replay list
+  const chosen = $("replaySelect").value;
+  let events = null, meta = null;
+  if(chosen){
+    try{
+      const r = await fetch("/api/recordings/" + encodeURIComponent(chosen));
+      if(r.ok){ events = await r.json(); meta = parseRecording(chosen); }
+    }catch(e){ /* fall through to run replay */ }
+  }
+  // 2) fallback: replay the current server run, if one exists
+  if(!events && current && current.serverRun && current.run_id){
+    try{
+      const r = await fetch("/api/runs/" + current.run_id + "/replay");
+      if(r.ok){ events = await r.json(); meta = {simulated:false, fromRun:true}; }
+    }catch(e){}
+  }
+  if(!events || !events.length){
+    $("ledger").innerHTML = '<div class="empty">No recording for this scenario and toggle yet. Run the task first.</div>';
+    return;
+  }
+  playEvents(events, chosen || (current && current.run_id) || "replay", meta);
+}
+
+function playEvents(events, key, meta){
   stopEverything();
-  current = freshRun(run_id, "replay");
-  STATE[run_id] = current;
+  current = freshRun("rec:" + key, "replay");
+  current.serverRun = false;   // a recording has no server-side audit
+  STATE[current.run_id] = current;
   resetView();
-  $("recBadge").classList.add("on");
+
+  const badge = $("recBadge");
+  badge.innerHTML = '<span class="blip"></span>' + esc(meta ? recordingBadge(meta) : "recording");
+  badge.className = "rec on" + (meta && !meta.simulated ? " live" : "");
   $("exportBtn").disabled = true;
 
   let i = 0;
   const feed = () => {
     if(i >= events.length){
-      $("recBadge").classList.remove("on");
-      $("exportBtn").disabled = false;
-      return;
+      replayTimer = null;
+      return;   // leave the badge visible so the recording stays clearly labelled
     }
     const ev = events[i++];
-    // replay auto-resolves approvals from the recording; no operator input
-    handle(ev.event, ev.data);
-    setTimeout(feed, 400);
+    handle(ev.event, ev.data);   // replay auto-resolves approvals from the recording
+    replayTimer = setTimeout(feed, 400);
   };
   feed();
 }
@@ -668,10 +842,19 @@ $("downloadBtn").addEventListener("click", () => {
   if(current) window.open("/api/runs/" + current.run_id + "/audit", "_blank");
 });
 $("closeAudit").addEventListener("click", () => $("audit").classList.remove("open"));
-$("scenario").addEventListener("change", () => { if(!current || current.finished) { current = null; syncScenarioHint(); } });
-$("scopeToggle").addEventListener("change", (e) => { $("scopeLabel").textContent = e.target.checked ? "on" : "off"; });
+$("scenario").addEventListener("change", () => {
+  if(!current || current.finished){ current = null; syncScenarioHint(); }
+  syncInjectionEnabled();
+  selectDefaultRecording();
+});
+$("scopeToggle").addEventListener("change", (e) => {
+  $("scopeLabel").textContent = e.target.checked ? "on" : "off";
+  selectDefaultRecording();
+});
 
+loadConfig();
 loadScenarios();
+loadRecordings();
 </script>
 </body>
 </html>
