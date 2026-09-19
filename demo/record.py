@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record both live Scope runs, then optionally assemble the demo."""
+"""Record the original pair, or a selected live/replay Scope scenario."""
 
 import argparse
 import asyncio
@@ -119,11 +119,129 @@ async def capture(base_url):
             await browser.close()
 
 
+
+async def single_capture(args):
+    name = args.out
+    if Path(name).name != name or name in (".", ".."):
+        raise ValueError("--out must be a basename inside demo/")
+    metadata = {"scenario": args.scenario, "mode": args.mode,
+                "recording": args.recording, "scope": args.scope,
+                "title": args.title, "approval_clicks": 0}
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        context = None
+        video = None
+        page = None
+        try:
+            if args.title:
+                title_context = await browser.new_context(viewport=SIZE, device_scale_factor=1)
+                title_page = await title_context.new_page()
+                await title_page.set_content(
+                    '<html><body style="margin:0;background:#0B1017;color:#F1F5F9;'
+                    'width:1440px;height:900px;display:flex;align-items:center;justify-content:center;'
+                    'font-family:Arial,sans-serif"><div style="max-width:1190px;text-align:center;'
+                    'font-size:48px;font-weight:600;line-height:1.35">'
+                    + html.escape(args.title) + '</div></body></html>')
+                await title_page.screenshot(path=str(HERE / f"{name}-title.png"))
+                await title_context.close()
+            if args.title_only:
+                return
+            context = await browser.new_context(viewport=SIZE, device_scale_factor=1,
+                color_scheme="dark", record_video_dir=str(HERE / "raw"), record_video_size=SIZE)
+            page = await context.new_page()
+            page.set_default_timeout(20_000)
+            video = page.video
+            await page.goto(args.url, wait_until="domcontentloaded")
+            await page.wait_for_function("s => !!document.querySelector('#scenario option[value=\"' + s + '\"]')", arg=args.scenario)
+            await page.locator("#scenario").select_option(args.scenario)
+            enabled = args.scope == "on"
+            if await page.locator("#scopeToggle").is_checked() != enabled:
+                await page.locator("label.switch").click()
+            await expect(page.locator("#scopeToggle")).to_be_checked(checked=enabled)
+            if args.mode == "replay":
+                await page.wait_for_function("name => [...document.querySelector('#replaySelect').options].some(o => o.value === name)", arg=args.recording)
+                await page.evaluate("name => { const s = document.querySelector('#replaySelect'); s.value = name; s.dispatchEvent(new Event('change', {bubbles:true})); }", args.recording)
+                async with page.expect_response(lambda r: '/api/recordings/' in r.url) as response_info:
+                    await page.locator("#replayBtn").click()
+                response = await response_info.value
+                if not response.ok:
+                    raise RuntimeError(f"Recording request failed: {response.status}")
+                (HERE / f"{name}-events.json").write_text(json.dumps(await response.json(), indent=2) + "\n")
+            else:
+                async with page.expect_response(lambda r: r.url.rstrip('/').endswith('/api/runs') and r.request.method == 'POST') as response_info:
+                    await page.locator("#runBtn").click()
+                response = await response_info.value
+                if not response.ok:
+                    raise RuntimeError(f"Run request failed: {response.status}")
+                metadata['run_id'] = (await response.json())['run_id']
+                print(f"{name}: live run {metadata['run_id']}", flush=True)
+            async with asyncio.timeout(240):
+                while True:
+                    approval = page.get_by_role('button', name='Approve once', exact=True)
+                    if await approval.count() and await approval.first.is_visible() and await approval.first.is_enabled():
+                        await approval.first.click(timeout=1000)
+                        metadata['approval_clicks'] += 1
+                        print(f"{name}: clicked Approve once", flush=True)
+                    terminal = page.locator('#ledger .end')
+                    if await terminal.count():
+                        status = await terminal.inner_text()
+                        if any(t in status for t in ('Task complete', 'Task failed', 'Task expired')):
+                            metadata['terminal'] = status
+                            if 'Task complete' not in status:
+                                raise RuntimeError(status)
+                            break
+                    await asyncio.sleep(0.08)
+            await asyncio.sleep(args.hold)
+            await page.screenshot(path=str(HERE / f"{name}.png"), full_page=True)
+            (HERE / f"{name}-ledger.txt").write_text(await page.locator('#ledger').inner_text() + "\n")
+            if args.mode == 'live':
+                response = await context.request.get(f"{args.url}/api/runs/{metadata['run_id']}/audit")
+                metadata['audit_http_status'] = response.status
+                if response.ok:
+                    (HERE / f"{name}-audit.json").write_text(json.dumps(await response.json(), indent=2) + "\n")
+            metadata['success'] = True
+            print(f"{name}: {metadata['terminal']}", flush=True)
+        except BaseException as error:
+            metadata['success'] = False
+            metadata['error'] = str(error) or type(error).__name__
+            if page:
+                await page.screenshot(path=str(HERE / f"{name}-error.png"), full_page=True)
+                (HERE / f"{name}-error-ledger.txt").write_text(await page.locator('#ledger').inner_text() + "\n")
+            raise
+        finally:
+            (HERE / f"{name}-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
+            if context:
+                await context.close()
+            if video:
+                await video.save_as(str(HERE / f"{name}.webm"))
+                await video.delete()
+            await browser.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://localhost:8000")
     parser.add_argument("--record-only", action="store_true")
+    parser.add_argument("--scenario", help="Scenario ID; omit to record the original before/after pair")
+    parser.add_argument("--mode", choices=("live", "replay"), default="live")
+    parser.add_argument("--recording", help="Recording name from /api/recordings")
+    parser.add_argument("--out", default="capture", help="Output basename within demo/")
+    parser.add_argument("--title", help="Text for a 1440x900 title PNG")
+    parser.add_argument("--scope", choices=("on", "off"), default="on")
+    parser.add_argument("--hold", type=float, default=4, help="Seconds to hold the completed run")
+    parser.add_argument("--title-only", action="store_true")
     args = parser.parse_args()
+    if args.scenario or args.title_only:
+        if args.title_only and not args.title:
+            parser.error("--title-only requires --title")
+        if args.mode == "replay" and not args.recording and not args.title_only:
+            parser.error("--mode replay requires --recording")
+        args.url = args.url.rstrip("/")
+        asyncio.run(single_capture(args))
+        if not args.record_only and not args.title_only:
+            segments = ([f"{args.out}-title.png:3"] if args.title else []) + [f"{args.out}.webm"]
+            subprocess.run(["bash", str(HERE / "stitch.sh"), "--out", args.out, *segments], check=True)
+        return
     asyncio.run(capture(args.url.rstrip("/")))
     if not args.record_only:
         subprocess.run(["bash", str(HERE / "stitch.sh")], check=True)

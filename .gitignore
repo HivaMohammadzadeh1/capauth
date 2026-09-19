@@ -8,3 +8,6 @@ bench/out/
 demo/*.webm
 demo/*.mp4
 demo/raw/
+demo/enterprise-*.gif
+demo/*segment*.mp4
+demo/*.log

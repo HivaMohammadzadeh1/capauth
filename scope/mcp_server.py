@@ -80,7 +80,9 @@ async def main() -> None:
         from scope.model import Capability
 
         try:
-            caps = [Capability(str(c["tool"]), str(c["action"]), str(c["resource"])) for c in args.get("capabilities", [])]
+            from scope.planner import _normalize
+
+            caps = [_normalize(c) for c in args.get("capabilities", [])]
             child = delegate(broker.lease, child_principal=f"{broker.lease.principal}/worker", task=str(args["task"]), capabilities=caps, ttl_seconds=300)
         except (DelegationError, KeyError, TypeError) as exc:
             return {"error": f"delegation refused: {exc}", "summary": f"delegation refused: {exc}"}
