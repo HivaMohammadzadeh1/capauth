@@ -44,7 +44,28 @@ a{color:var(--accent)}
 .lease-id{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); margin-top:6px}
 .who{font-size:13px; color:var(--muted); margin:-6px 0 10px; line-height:1.6}
 .who b{font-family:"IBM Plex Mono",monospace; font-weight:500; color:var(--ink-2); font-size:12.5px}
-.agentmsg{max-height:220px; overflow:auto}
+.agentmsg{max-height:none}
+.agentmsg .txt{max-height:4.6em; overflow:hidden; position:relative}
+.agentmsg.open .txt{max-height:none}
+.agentmsg .more{margin-top:6px; color:var(--accent); font-size:12.5px; cursor:pointer; background:none; border:0; padding:0; font-family:inherit}
+
+/* pipeline strip: where the run is right now */
+.pipe{display:flex; align-items:center; gap:0; padding:14px 24px; border-bottom:1px solid var(--line); background:var(--surface)}
+.st{position:relative; min-width:118px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); opacity:.5; transition:opacity .2s, border-color .2s, box-shadow .2s}
+.st b{display:block; font-size:13px; font-weight:600; color:var(--ink)}
+.st small{display:block; color:var(--muted); font-size:11.5px; line-height:1.35; margin-top:2px; max-width:180px}
+.st.active{opacity:1; border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,209,219,.14)}
+.st.done{opacity:1; border-color:var(--line-2)}
+.st.done b::after{content:"\2713"; color:var(--allow); font-family:"IBM Plex Mono",monospace; font-size:12px; margin-left:8px}
+.st.fail{opacity:1; border-color:var(--deny)}
+.ln{flex:1; height:2px; background:var(--line); min-width:14px; margin:0 6px}
+.ln.done{background:var(--accent)}
+.dots{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; min-height:8px}
+.dots span{width:8px; height:8px; border-radius:50%; display:inline-block}
+.dots .d-allow{background:var(--allow)} .dots .d-allow_limited{background:var(--limited)} .dots .d-human_approval{background:var(--approval)} .dots .d-deny{background:var(--deny)}
+.branch{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-top:4px}
+.branch:empty{display:none}
+@media (max-width:1100px){.pipe{flex-wrap:wrap; gap:8px} .ln{display:none}}
 .row.child{margin-left:22px; border-left-style:dashed}
 .row .lease-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-left:8px; font-weight:400; letter-spacing:0}
 .row.deleg{border-left-color:var(--approval)}
@@ -236,6 +257,20 @@ td .mono{font-size:11.5px}
     <button class="btn" id="exportBtn" disabled>Export audit</button>
   </div>
 </header>
+
+<div class="pipe" id="pipe" aria-label="run pipeline">
+  <div class="st" data-st="task"><b>Task</b><small id="pTask">pick a scenario</small></div>
+  <div class="ln"></div>
+  <div class="st" data-st="plan"><b>Plan</b><small id="pPlan">the agent writes it first</small></div>
+  <div class="ln"></div>
+  <div class="st" data-st="lease"><b>Lease</b><small id="pLease">planner proposes, ceiling clamps, signed</small></div>
+  <div class="ln"></div>
+  <div class="st" data-st="calls"><b>Tool calls</b><small id="pCalls">each one checked in code</small><div class="dots" id="pDots"></div><div class="branch" id="pBranch"></div></div>
+  <div class="ln"></div>
+  <div class="st" data-st="end"><b>Revoked</b><small id="pEnd">when the task ends</small></div>
+  <div class="ln"></div>
+  <div class="st" data-st="ledger"><b>Ledger</b><small id="pLedger">hash chain, exportable</small></div>
+</div>
 
 <div class="body">
   <section class="lease">
@@ -454,6 +489,7 @@ function stopEverything(){
 }
 
 function resetView(){
+  pipeReset();
   $("leaseCard").classList.add("empty");
   $("ledger").innerHTML = "";
   $("approvalHost").innerHTML = "";
@@ -465,6 +501,39 @@ function resetView(){
   $("leaseState").className = "lease-state";
   setArc(1, false);
   $("ringText").textContent = "--:--";
+}
+
+// ---- pipeline strip ----
+const STAGES = ["task","plan","lease","calls","end","ledger"];
+function stage(name, text){
+  const i = STAGES.indexOf(name);
+  document.querySelectorAll("#pipe .st").forEach((el) => {
+    const j = STAGES.indexOf(el.dataset.st);
+    el.className = "st" + (j < i ? " done" : j === i ? " active" : "");
+  });
+  document.querySelectorAll("#pipe .ln").forEach((el, k) => { el.className = "ln" + (k < i ? " done" : ""); });
+  if(text != null) $("p" + name.charAt(0).toUpperCase() + name.slice(1)).textContent = text;
+}
+function pipeReset(){
+  document.querySelectorAll("#pipe .st").forEach((el) => el.className = "st");
+  document.querySelectorAll("#pipe .ln").forEach((el) => el.className = "ln");
+  $("pTask").textContent = "pick a scenario"; $("pPlan").textContent = "the agent writes it first";
+  $("pLease").textContent = "planner proposes, ceiling clamps, signed"; $("pCalls").textContent = "each one checked in code";
+  $("pEnd").textContent = "when the task ends"; $("pLedger").textContent = "hash chain, exportable";
+  $("pDots").innerHTML = ""; $("pBranch").textContent = "";
+}
+function pipeDot(decision){
+  const sp = document.createElement("span"); sp.className = "d-" + String(decision).toLowerCase(); $("pDots").appendChild(sp);
+  const k = $("pDots").children.length;
+  $("pCalls").textContent = k + (k === 1 ? " call checked" : " calls checked");
+}
+function shortCall(d){
+  if(d.tool === "scope" && d.action === "delegate"){
+    const caps = (d.args && d.args.capabilities || []).length;
+    return "scope.delegate(" + caps + (caps === 1 ? " capability" : " capabilities") + ", task: " + String(d.args && d.args.task || "").slice(0, 70) + (String(d.args && d.args.task || "").length > 70 ? "..." : "") + ")";
+  }
+  const s = String(d.call_str || "");
+  return s.length > 150 ? s.slice(0, 147) + "...)" : s;
 }
 
 // ---- event handling (shared by live + replay) ----
@@ -487,6 +556,8 @@ function handle(type, d){
 }
 
 function onRunStarted(d){
+  stage("task", d.scenario_title || d.task);
+  stage("plan", "writing");
   $("agentId").textContent = stripId(d.agent) || "-";
   $("obo").textContent = stripId(d.on_behalf_of) || "-";
   $("whoLine").innerHTML = "agent <b>" + esc(stripId(d.agent) || "-") + "</b> acting for <b>" + esc(stripId(d.on_behalf_of) || "-") + "</b>";
@@ -507,6 +578,8 @@ function setBackendTag(backend, model){
 }
 
 function onPlan(d){
+  stage("lease", "issuing from " + ((d.steps || []).length) + " plan steps");
+  $("pPlan").textContent = (d.steps || []).length + " steps";
   const ol = $("plan"); ol.innerHTML = "";
   (d.steps || []).forEach((s) => {
     const li = document.createElement("li");
@@ -517,6 +590,9 @@ function onPlan(d){
 function onLease(d){
   const lease = d.lease || {};
   $("leaseCard").classList.remove("empty");
+  const nc = (lease.capabilities || []).length;
+  stage("calls", "waiting for the first call");
+  $("pLease").textContent = (lease.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", " + Math.round((lease.ttl_seconds || 600) / 60) + " min";
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
@@ -575,6 +651,8 @@ function renderCaps(lease, excluded){
 }
 
 function onDelegated(d){
+  const nc = (d.lease && d.lease.capabilities || []).length;
+  $("pBranch").textContent = "worker " + (d.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", child of " + (d.parent_lease_id || "");
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
   const caps = (d.lease && d.lease.capabilities || []).map((c) => c.tool + "." + c.action + " " + humanRes(c.resource));
@@ -586,13 +664,14 @@ function onDelegated(d){
 }
 
 function onDecision(d){
+  pipeDot(d.decision);
   const led = $("ledger");
   const first = led.querySelector(".empty");
   if(first) first.remove();
   const cls = "d-" + String(d.decision).toLowerCase() + (d.depth ? " child" : "");
   const tag = d.depth ? '<span class="lease-tag">worker ' + esc(d.lease_id || "") + '</span>' : "";
   let inner = '<span class="dec ' + cls + '">' + (DEC_LABEL[d.decision] || d.decision) + tag + "</span><div>";
-  inner += '<div class="call">' + esc(d.call_str) + "</div>";
+  inner += '<div class="call" title="' + esc(d.call_str) + '">' + esc(shortCall(d)) + "</div>";
   const denyCls = d.decision === "DENY" ? " deny" : "";
   let why = esc(d.reason || "");
   if(d.decision === "ALLOW_LIMITED" && d.narrowed_to){
@@ -662,17 +741,24 @@ function onApprovalResolved(d){
 function onAgentMessage(d){
   const led = $("ledger");
   const div = document.createElement("div"); div.className = "agentmsg";
-  div.innerHTML = '<div class="h">agent report</div>' + esc(d.text);
+  const who = d.depth ? "worker report" : "agent report";
+  div.innerHTML = '<div class="h">' + who + '</div><div class="txt">' + esc(d.text) + '</div><button class="more" type="button">show all</button>';
+  const btn = div.querySelector(".more");
+  btn.addEventListener("click", () => { div.classList.toggle("open"); btn.textContent = div.classList.contains("open") ? "show less" : "show all"; });
   led.appendChild(div); div.scrollIntoView({block:"nearest"});
 }
 
 function onRevoked(d){
+  if(!d || !d.depth){ stage("end", (d && d.reason === "expired") ? "TTL ran out" : "revoked at task end"); }
   current.revoked = true;
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
   greyRing(d && d.reason === "expired" ? "expired" : "revoked");
 }
 
 function onFinished(d){
+  stage("ledger", (d.decisions || 0) + " entries, chain " + (d.chain_ok ? "intact" : "broken"));
+  document.querySelector('#pipe .st[data-st="ledger"]').className = "st " + (d.status === "failed" ? "fail" : "done");
+  if(d.status === "failed") $("pLedger").textContent = "run failed";
   current.finished = true;
   setRunning(false);
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
@@ -868,6 +954,7 @@ function playEvents(events, key, meta){
 
 // ---- wiring ----
 $("runBtn").addEventListener("click", runTask);
+$("scenario").addEventListener("change", () => { const o = $("scenario").selectedOptions[0]; if(o && !(current && !current.finished)) $("pTask").textContent = o.textContent; });
 $("exportBtn").addEventListener("click", exportAudit);
 $("replayBtn").addEventListener("click", replayRun);
 $("downloadBtn").addEventListener("click", () => {
