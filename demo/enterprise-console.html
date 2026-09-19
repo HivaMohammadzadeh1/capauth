@@ -42,9 +42,6 @@ a{color:var(--accent)}
 .leasehead .meta{display:none}
 #leaseCard.empty .leasehead{display:none}
 .lease-id{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); margin-top:6px}
-.who{font-size:13px; color:var(--muted); margin:-6px 0 10px; line-height:1.6}
-.who b{font-family:"IBM Plex Mono",monospace; font-weight:500; color:var(--ink-2); font-size:12.5px}
-.agentmsg{max-height:220px; overflow:auto}
 .row.child{margin-left:22px; border-left-style:dashed}
 .row .lease-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-left:8px; font-weight:400; letter-spacing:0}
 .row.deleg{border-left-color:var(--approval)}
@@ -215,9 +212,9 @@ td .mono{font-size:11.5px}
 <header class="top">
   <span class="brand">Scope<span class="dot">.</span></span>
   <div class="idline">
-    <span class="kv" style="display:none">agent <b id="agentId">-</b></span>
-    <span class="kv" style="display:none">for <b id="obo">-</b></span>
-    <span class="kv" style="display:none">lease <b id="leaseId">-</b></span>
+    <span class="kv">agent <b id="agentId">-</b></span>
+    <span class="kv">for <b id="obo">-</b></span>
+    <span class="kv">lease <b id="leaseId">-</b></span>
     <span class="kv" id="backendTag"></span>
   </div>
   <div class="controls">
@@ -246,7 +243,6 @@ td .mono{font-size:11.5px}
     <ol class="plan" id="plan"><li class="hint">Written by the agent before any tool call.</li></ol>
 
     <h4 class="sec">Lease</h4>
-    <div class="who" id="whoLine"></div>
     <div id="leaseCard" class="empty">
       <div class="leasehead">
         <div class="ringwrap">
@@ -489,7 +485,6 @@ function handle(type, d){
 function onRunStarted(d){
   $("agentId").textContent = stripId(d.agent) || "-";
   $("obo").textContent = stripId(d.on_behalf_of) || "-";
-  $("whoLine").innerHTML = "agent <b>" + esc(stripId(d.agent) || "-") + "</b> acting for <b>" + esc(stripId(d.on_behalf_of) || "-") + "</b>";
   $("task").textContent = d.task || "";
   setBackendTag(d.backend, d.model);
   if($("ledger").childElementCount === 0){
@@ -522,7 +517,6 @@ function onLease(d){
   current.issuedMs = Date.parse(lease.issued_at);
   current.expiresMs = Date.parse(lease.expires_at);
   $("leaseId").textContent = lease.lease_id || "-";
-  $("whoLine").innerHTML += " under lease <b>" + esc(lease.lease_id || "-") + "</b>";
   $("leaseMeta").innerHTML =
     "issued <b>" + hms(lease.issued_at) + "</b><br>expires <b>" + hms(lease.expires_at) +
     "</b><br>ceiling <b>policy/" + esc((lease.principal || "agent").split(":").pop()) + ".yaml</b>";
