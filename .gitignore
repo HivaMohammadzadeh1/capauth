@@ -11,3 +11,4 @@ demo/raw/
 demo/enterprise-*.gif
 demo/*segment*.mp4
 demo/*.log
+!demo/*-preview.gif
