@@ -272,19 +272,6 @@ td .mono{font-size:11.5px}
   </div>
 </header>
 
-<div class="pipe" id="pipe" aria-label="run pipeline">
-  <div class="st" data-st="task"><b>Task</b><small id="pTask">pick a scenario</small></div>
-  <div class="ln"></div>
-  <div class="st" data-st="plan"><b>Plan</b><small id="pPlan">the agent writes it first</small></div>
-  <div class="ln"></div>
-  <div class="st" data-st="lease"><b>Lease</b><small id="pLease">planner proposes, ceiling clamps, signed</small></div>
-  <div class="ln"></div>
-  <div class="st" data-st="calls"><b>Tool calls</b><small id="pCalls">each one checked in code</small><div class="dots" id="pDots"></div><div class="branch" id="pBranch"></div></div>
-  <div class="ln"></div>
-  <div class="st" data-st="end"><b>Revoked</b><small id="pEnd">when the task ends</small></div>
-  <div class="ln"></div>
-  <div class="st" data-st="ledger"><b>Ledger</b><small id="pLedger">hash chain, exportable</small></div>
-</div>
 
 <div class="body">
   <section class="lease">
@@ -520,6 +507,7 @@ function resetView(){
 // ---- pipeline strip ----
 const STAGES = ["task","plan","lease","calls","end","ledger"];
 function stage(name, text){
+  if(!document.getElementById("pipe")) return;
   const i = STAGES.indexOf(name);
   document.querySelectorAll("#pipe .st").forEach((el) => {
     const j = STAGES.indexOf(el.dataset.st);
@@ -529,6 +517,7 @@ function stage(name, text){
   if(text != null) $("p" + name.charAt(0).toUpperCase() + name.slice(1)).textContent = text;
 }
 function pipeReset(){
+  if(!document.getElementById("pipe")) return;
   document.querySelectorAll("#pipe .st").forEach((el) => el.className = "st");
   document.querySelectorAll("#pipe .ln").forEach((el) => el.className = "ln");
   $("pTask").textContent = "pick a scenario"; $("pPlan").textContent = "the agent writes it first";
@@ -537,6 +526,7 @@ function pipeReset(){
   $("pDots").innerHTML = ""; $("pBranch").textContent = "";
 }
 function pipeDot(decision){
+  if(!document.getElementById("pipe")) return;
   const sp = document.createElement("span"); sp.className = "d-" + String(decision).toLowerCase(); $("pDots").appendChild(sp);
   const k = $("pDots").children.length;
   $("pCalls").textContent = k + (k === 1 ? " call checked" : " calls checked");
@@ -609,7 +599,6 @@ function markStep(tool, action, decision){
 }
 function onPlan(d){
   stage("lease", "issuing from " + ((d.steps || []).length) + " plan steps");
-  $("pPlan").textContent = (d.steps || []).length + " steps" + (d.cached ? ", cached" : "");
   const ol = $("plan"); ol.innerHTML = "";
   (d.steps || []).forEach((step, i) => {
     const li = document.createElement("li");
@@ -625,13 +614,12 @@ function onLease(d){
   $("leaseCard").classList.remove("empty");
   const nc = (lease.capabilities || []).length;
   stage("calls", "waiting for the first call");
-  $("pLease").textContent = (lease.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", " + Math.round((lease.ttl_seconds || 600) / 60) + " min" + (d.cached ? ", from the task template cache" : "");
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
   current.expiresMs = Date.parse(lease.expires_at);
   $("leaseId").textContent = lease.lease_id || "-";
-  $("whoLine").innerHTML += " under lease <b>" + esc(lease.lease_id || "-") + "</b>";
+  $("whoLine").innerHTML += " under lease <b>" + esc(lease.lease_id || "-") + "</b>" + (d.cached ? " (plan and proposal from the task template cache)" : "");
   $("leaseMeta").innerHTML =
     "issued <b>" + hms(lease.issued_at) + "</b><br>expires <b>" + hms(lease.expires_at) +
     "</b><br>ceiling <b>policy/" + esc((lease.principal || "agent").split(":").pop()) + ".yaml</b>";
@@ -685,7 +673,6 @@ function renderCaps(lease, excluded){
 
 function onDelegated(d){
   const nc = (d.lease && d.lease.capabilities || []).length;
-  $("pBranch").textContent = "worker " + (d.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", child of " + (d.parent_lease_id || "");
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
   const caps = (d.lease && d.lease.capabilities || []).map((c) => c.tool + "." + c.action + " " + humanRes(c.resource));
@@ -791,8 +778,6 @@ function onRevoked(d){
 
 function onFinished(d){
   stage("ledger", (d.decisions || 0) + " entries, chain " + (d.chain_ok ? "intact" : "broken"));
-  document.querySelector('#pipe .st[data-st="ledger"]').className = "st " + (d.status === "failed" ? "fail" : "done");
-  if(d.status === "failed") $("pLedger").textContent = "run failed";
   current.finished = true;
   setRunning(false);
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
@@ -988,7 +973,7 @@ function playEvents(events, key, meta){
 
 // ---- wiring ----
 $("runBtn").addEventListener("click", runTask);
-$("scenario").addEventListener("change", () => { const o = $("scenario").selectedOptions[0]; if(o && !(current && !current.finished)) $("pTask").textContent = o.textContent; });
+
 $("exportBtn").addEventListener("click", exportAudit);
 $("replayBtn").addEventListener("click", replayRun);
 $("downloadBtn").addEventListener("click", () => {
