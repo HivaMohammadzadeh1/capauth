@@ -124,10 +124,24 @@ select:focus-visible,.btn:focus-visible{outline:2px solid var(--accent); outline
 .sec{font-family:"Bricolage Grotesque",sans-serif; font-size:18px; font-weight:600; color:var(--ink); margin:0 0 12px; letter-spacing:-0.01em}
 .lease .sec:not(:first-child){margin-top:28px}
 
-.task{font-size:15px; line-height:1.5; color:var(--ink)}
-.plan{margin:0; padding-left:20px; color:var(--ink-2); font-size:14px}
-.plan li{margin:5px 0}
-.plan li.hint{list-style:none; margin-left:-20px; color:var(--muted)}
+.task{font-size:14.5px; line-height:1.5; color:var(--ink)}
+/* task + plan as a vertical flow */
+.flowd{position:relative; padding-left:18px}
+.flowd::before{content:""; position:absolute; left:5px; top:14px; bottom:14px; width:2px; background:var(--line-2)}
+.fnode{position:relative; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:0 0 10px}
+.fnode::before{content:""; position:absolute; left:-18px; top:16px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--line-2); box-sizing:border-box}
+.fnode.root{border-color:var(--accent)}
+.fnode.root::before{border-color:var(--accent); background:var(--accent)}
+.fk{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); margin-bottom:4px}
+.plan{list-style:none; margin:0; padding:0; color:var(--ink-2); font-size:13.5px}
+.plan li{position:relative; margin:0 0 10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 12px; line-height:1.45}
+.plan li::before{content:""; position:absolute; left:-18px; top:14px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--line-2); box-sizing:border-box}
+.plan li .tool{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent); background:rgba(90,209,219,.1); border:1px solid rgba(90,209,219,.25); border-radius:6px; padding:1px 7px; margin-bottom:5px}
+.plan li.done{border-color:rgba(62,210,166,.5)} .plan li.done::before{border-color:var(--allow); background:var(--allow)}
+.plan li.denied{border-color:rgba(255,107,107,.5)} .plan li.denied::before{border-color:var(--deny); background:var(--deny)}
+.plan li.limited{border-color:rgba(242,180,74,.5)} .plan li.limited::before{border-color:var(--limited); background:var(--limited)}
+.plan li.hint{background:none; border:0; padding:4px 0; color:var(--muted); font-size:13px}
+.plan li.hint::before{display:none}
 .hint{color:var(--muted); font-size:13.5px; padding:4px 0}
 
 /* lease card */
@@ -274,11 +288,11 @@ td .mono{font-size:11.5px}
 
 <div class="body">
   <section class="lease">
-    <h4 class="sec">Task</h4>
-    <div class="task" id="task">Pick a scenario and press Run task.</div>
-
-    <h4 class="sec">Plan</h4>
-    <ol class="plan" id="plan"><li class="hint">Written by the agent before any tool call.</li></ol>
+    <h4 class="sec">Task and plan</h4>
+    <div class="flowd">
+      <div class="fnode root"><div class="fk">task</div><div class="task" id="task">Pick a scenario and press Run task.</div></div>
+      <ol class="plan" id="plan"><li class="hint">The agent's plan appears here as steps, before any tool call. Each step lights up when its call is checked.</li></ol>
+    </div>
 
     <h4 class="sec">Lease</h4>
     <div class="who" id="whoLine"></div>
@@ -581,13 +595,28 @@ function setBackendTag(backend, model){
     (model ? " <b>" + esc(model) + "</b>" : "");
 }
 
+const TOOL_RE = /\b(slack|github|drive|email|scope|chat|crm|refunds)[._ ](search|read_thread|post_message|create_issue|read_pr|push|merge_pr|delete_repo|list_files|read_file|send|delegate|read_customer|export|issue|reply|read)\b/;
+function stepTool(text){ const m = TOOL_RE.exec(String(text)); return m ? m[1] + "." + m[2] : null; }
+function markStep(tool, action, decision){
+  const key = tool + "." + action;
+  const items = [...document.querySelectorAll("#plan li[data-tool]")];
+  let li = items.find((x) => x.dataset.tool === key && !x.dataset.hit);
+  if(!li) li = items.find((x) => x.dataset.tool === key);
+  if(!li) return;
+  li.dataset.hit = "1";
+  li.classList.remove("done", "denied", "limited");
+  li.classList.add(decision === "DENY" ? "denied" : decision === "ALLOW_LIMITED" ? "limited" : decision === "ALLOW" ? "done" : "limited");
+}
 function onPlan(d){
   stage("lease", "issuing from " + ((d.steps || []).length) + " plan steps");
-  $("pPlan").textContent = (d.steps || []).length + " steps";
+  $("pPlan").textContent = (d.steps || []).length + " steps" + (d.cached ? ", cached" : "");
   const ol = $("plan"); ol.innerHTML = "";
-  (d.steps || []).forEach((s) => {
+  (d.steps || []).forEach((step, i) => {
     const li = document.createElement("li");
-    li.textContent = s; ol.appendChild(li);
+    const t = stepTool(step);
+    if(t) li.dataset.tool = t;
+    li.innerHTML = (t ? '<span class="tool">' + esc(t) + '</span><br>' : "") + esc(String(step).replace(/^\d+[.)]\s*/, ""));
+    ol.appendChild(li);
   });
 }
 
@@ -596,7 +625,7 @@ function onLease(d){
   $("leaseCard").classList.remove("empty");
   const nc = (lease.capabilities || []).length;
   stage("calls", "waiting for the first call");
-  $("pLease").textContent = (lease.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", " + Math.round((lease.ttl_seconds || 600) / 60) + " min";
+  $("pLease").textContent = (lease.lease_id || "") + ", " + nc + (nc === 1 ? " capability" : " capabilities") + ", " + Math.round((lease.ttl_seconds || 600) / 60) + " min" + (d.cached ? ", from the task template cache" : "");
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
@@ -669,6 +698,7 @@ function onDelegated(d){
 
 function onDecision(d){
   pipeDot(d.decision);
+  if(!d.depth) markStep(d.tool, d.action, d.decision);
   const led = $("ledger");
   const first = led.querySelector(".empty");
   if(first) first.remove();

@@ -18,7 +18,7 @@ from anthropic import AsyncAnthropic
 from scope.broker import Broker, flags_from_ledger
 from scope.lease import Lease, issue_lease
 from scope.model import Capability
-from scope.planner import propose_capabilities, sdk_complete_json
+from scope.planner import plan_and_propose, propose_capabilities, sdk_complete_json
 from scope.policy import Policy, load_policy
 from tools.fixtures import DEFAULT_INJECTION, fresh_world
 from tools.registry import TOOLS, claude_tools
@@ -28,6 +28,9 @@ EFFORT = os.environ.get("SCOPE_EFFORT", "medium")
 MAX_TURNS = int(os.environ.get("SCOPE_MAX_TURNS", "14"))
 APPROVAL_TIMEOUT = float(os.environ.get("SCOPE_APPROVAL_TIMEOUT", "240"))
 BACKEND = os.environ.get("SCOPE_BACKEND", "cli")  # cli (Claude Code) | sdk (API key or ant profile) | scripted
+PLANNER_MODE = os.environ.get("SCOPE_PLANNER_MODE", "merged")  # merged: one structured call for plan + proposal; separate: two calls
+LEASE_CACHE_TTL = int(os.environ.get("SCOPE_LEASE_CACHE_TTL", "3600"))  # seconds; 0 disables
+_LEASE_CACHE: dict[tuple[str, str, bool], tuple[float, list[str], list[Capability], dict]] = {}
 
 
 def _now() -> datetime:
@@ -216,6 +219,56 @@ def _exec_prompt(run: Run) -> str:
     return f"Task: {run.scenario.task}\n\nYour plan:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(run.plan)) + "\n\nExecute it now."
 
 
+async def _plan_and_issue(run: Run, complete_json) -> Lease:
+    """Plan, propose, clamp, sign. One structured call in merged mode; cached per task template."""
+    import time as _time
+
+    pol = run.policy
+    key = (run.scenario.task, run.scenario.agent, run.scope_enabled)
+    hit = _LEASE_CACHE.get(key)
+    if hit and LEASE_CACHE_TTL and _time.time() - hit[0] < LEASE_CACHE_TTL and BACKEND != "scripted":
+        _, steps, proposed, raw = hit
+        run.plan = list(steps)
+        run.emit("plan", {"steps": run.plan, "cached": True})
+        return _finish_issue(run, proposed, raw, cached=True)
+
+    if PLANNER_MODE == "merged" and run.scope_enabled:
+        tool_lines = "\n".join(f"- {t.tool}.{t.action}: {t.description}" for t in TOOLS.values())
+        steps, proposed, raw = await plan_and_propose(complete_json, task=run.scenario.task, tool_lines=tool_lines, policy=pol)
+        run.plan = steps
+        run.emit("plan", {"steps": run.plan})
+    else:
+        system, user = _plan_prompt(run)
+        run.plan = (await complete_json(system, user, PLAN_SCHEMA))["steps"]
+        run.emit("plan", {"steps": run.plan})
+        if run.scope_enabled:
+            proposed, raw = await propose_capabilities(complete_json, task=run.scenario.task, plan=run.plan, policy=pol)
+        else:
+            proposed, raw = [], {"rationale": "Scope disabled: the agent holds the full ceiling."}
+    if LEASE_CACHE_TTL:
+        _LEASE_CACHE[key] = (_time.time(), list(run.plan), list(proposed), dict(raw))
+    return _finish_issue(run, proposed, raw, cached=False)
+
+
+def _finish_issue(run: Run, proposed: list[Capability], raw: dict, *, cached: bool) -> Lease:
+    pol = run.policy
+    if run.scope_enabled:
+        caps = pol.clamp(proposed)
+        dropped = [c.as_dict() for c in proposed if c not in caps]
+    else:
+        caps, dropped = list(pol.ceiling), []
+    lease = issue_lease(principal=pol.principal, on_behalf_of=run.scenario.on_behalf_of, task=run.scenario.task,
+                        capabilities=caps, sensitive=sorted(pol.sensitive), ttl_seconds=pol.ttl_seconds)
+    run.lease = lease
+    run.emit("lease_issued", {
+        "lease": lease.as_dict(),
+        "excluded": pol.excluded_by(caps) if run.scope_enabled else [],
+        "cached": cached,
+        "planner": {"rationale": raw.get("rationale", ""), "proposed": [c.as_dict() for c in proposed], "clamped_out": dropped},
+    })
+    return lease
+
+
 async def _issue(run: Run, complete_json) -> Lease:
     pol = run.policy
     if run.scope_enabled:
@@ -350,10 +403,7 @@ async def execute(run: Run, client=None, backend: str | None = None) -> RunResul
             client = client or AsyncAnthropic(timeout=180, max_retries=2)
             complete_json = sdk_complete_json(client)
 
-        system, user = _plan_prompt(run)
-        run.plan = (await complete_json(system, user, PLAN_SCHEMA))["steps"]
-        run.emit("plan", {"steps": run.plan})
-        lease = await _issue(run, complete_json)
+        lease = await _plan_and_issue(run, complete_json)
 
         run.final_message = await (_agent_cli(run) if backend == "cli" else _agent_sdk(run, client))
 

@@ -94,7 +94,10 @@ class _Messages:
         system = kw.get("system", "") or ""
         msgs = kw["messages"]
         first = msgs[0]["content"] if isinstance(msgs[0]["content"], str) else ""
-        scen = "fix-deploy" if "PR #481" in first else ("support" if "support conversation" in first else ("ai-org" if "worker agent" in first else "file-issue"))
+        scen = ("fix-deploy" if "PR #481. Review" in first else "support" if "conversation with customer 1001" in first
+                else "ai-org" if "Prepare the incident summary" in first else "file-issue")
+        if fmt and "steps" in fmt["schema"]["properties"] and "capabilities" in fmt["schema"]["properties"]:
+            return SimpleNamespace(stop_reason="end_turn", content=[_text(json.dumps({"steps": PLANS[scen], "capabilities": CAPS[scen], "rationale": "scripted"}))])
         if fmt and "steps" in fmt["schema"]["properties"]:
             return SimpleNamespace(stop_reason="end_turn", content=[_text(json.dumps({"steps": PLANS[scen]}))])
         if system.startswith("You are the security planner"):

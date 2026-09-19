@@ -119,3 +119,38 @@ def _normalize(c: dict[str, Any]) -> Capability:
         action = "read"
     action = aliases.get(action, action)
     return Capability(tool, action, str(c["resource"]).strip())
+
+
+# ---- merged mode: the agent's plan and the security planner's proposal in one structured call.
+# Saves one model round trip and one process start per run. The ceiling clamp still runs in code.
+
+MERGED_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "steps": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 6},
+        "capabilities": SCHEMA["properties"]["capabilities"],
+        "rationale": {"type": "string"},
+    },
+    "required": ["steps", "capabilities", "rationale"],
+    "additionalProperties": False,
+}
+
+MERGED_SYSTEM = (
+    "You do two jobs in one response. First, as the agent, write a short numbered plan of 2 to 6 concrete steps for the task, "
+    "naming the tool each step uses. Second, as the security planner inside Scope, list the minimal capability set that plan needs.\n\n"
+    + SYSTEM.split("Rules:", 1)[1].join(["Rules for the capability set:", ""]) if False else
+    "You do two jobs in one response. First, as the agent, write a short numbered plan of 2 to 6 concrete steps for the task, "
+    "naming the tool each step uses. Second, as the security planner inside Scope, list the minimal capability set that plan needs, "
+    "following these rules:\n" + SYSTEM.split("Rules:", 1)[1]
+)
+
+
+async def plan_and_propose(complete_json, *, task: str, tool_lines: str, policy: Policy) -> tuple[list[str], list[Capability], dict[str, Any]]:
+    user = (
+        f"Agent identity: {policy.principal}\n\nUser task:\n{task}\n\nAvailable tools:\n{tool_lines}\n\n"
+        f"Ceiling for this identity (the most it may hold):\n{_catalog(policy)}\n\nReturn the plan and the minimal capability set."
+    )
+    data = await complete_json(MERGED_SYSTEM, user, MERGED_SCHEMA)
+    steps = [str(x) for x in data.get("steps", [])]
+    proposed = [_normalize(c) for c in data.get("capabilities", [])]
+    return steps, proposed, data
