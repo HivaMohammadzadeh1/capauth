@@ -1,293 +1,221 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Scope</title>
+<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --bg:#0B1017; --surface:#121A24; --surface-2:#16202C; --line:#1F2A36; --line-2:#2A3745;
-  --ink:#E6EDF5; --ink-2:#B9C4D0; --muted:#8A9AAE;
+  --bg:#0A0F16; --surface:#111923; --surface-2:#16212D; --line:#1F2B38; --line-2:#2C3A4A;
+  --ink:#EAF0F7; --ink-2:#BCC7D4; --muted:#8696AA;
   --allow:#3ED2A6; --limited:#F2B44A; --approval:#A78BFA; --deny:#FF6B6B; --accent:#5AD1DB;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{
-  background:var(--bg); color:var(--ink);
-  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:14px; line-height:1.5; min-height:100vh;
-}
+html,body{margin:0; height:100%}
+body{background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:15px; line-height:1.5; display:flex; flex-direction:column; min-height:100vh}
 .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 h1,h2,h3,h4{margin:0}
 button{font-family:inherit}
 a{color:var(--accent)}
+[hidden]{display:none !important}
 
-/* top bar: one row */
-.top{
-  display:flex; flex-wrap:nowrap; align-items:center; gap:12px 14px;
-  padding:14px 24px; border-bottom:1px solid var(--line);
-  background:var(--surface); position:sticky; top:0; z-index:20;
-}
-.brand{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:21px; letter-spacing:-0.02em; flex:none}
+/* header: brand, scenario chips, run */
+.top{display:flex; align-items:center; gap:18px; padding:14px 28px; border-bottom:1px solid var(--line); background:var(--surface)}
+.brand{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:24px; letter-spacing:-0.02em; flex:none}
 .brand .dot{color:var(--accent)}
-.idline{display:flex; align-items:center; gap:16px; flex:1; min-width:0; overflow:hidden; white-space:nowrap}
-.kv{color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis}
-.kv b{color:var(--ink-2); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
-.controls{display:flex; align-items:center; gap:10px; flex:0 0 auto; flex-wrap:nowrap; justify-content:flex-end}
-#modelSelect,#injectionSelect,#replaySelect{display:none}
-.planner-note{display:none}
-.leasehead .meta{display:none}
-#leaseCard.empty .leasehead{display:none}
-.lease-id{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); margin-top:6px}
-.who{font-size:13px; color:var(--muted); margin:-6px 0 10px; line-height:1.6}
-.who b{font-family:"IBM Plex Mono",monospace; font-weight:500; color:var(--ink-2); font-size:12.5px}
-.agentmsg{max-height:none}
-.agentmsg .txt{max-height:4.6em; overflow:hidden; position:relative}
-.agentmsg.open .txt{max-height:none}
-.agentmsg .more{margin-top:6px; color:var(--accent); font-size:12.5px; cursor:pointer; background:none; border:0; padding:0; font-family:inherit}
-
-/* pipeline strip: where the run is right now */
-.pipe{display:flex; align-items:center; gap:0; padding:14px 24px; border-bottom:1px solid var(--line); background:var(--surface)}
-.st{position:relative; min-width:118px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); opacity:.5; transition:opacity .2s, border-color .2s, box-shadow .2s}
-.st b{display:block; font-size:13px; font-weight:600; color:var(--ink)}
-.st small{display:block; color:var(--muted); font-size:11.5px; line-height:1.35; margin-top:2px; max-width:180px}
-.st.active{opacity:1; border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,209,219,.14)}
-.st.done{opacity:1; border-color:var(--line-2)}
-.st.done b::after{content:"\2713"; color:var(--allow); font-family:"IBM Plex Mono",monospace; font-size:12px; margin-left:8px}
-.st.fail{opacity:1; border-color:var(--deny)}
-.ln{flex:1; height:2px; background:var(--line); min-width:14px; margin:0 6px}
-.ln.done{background:var(--accent)}
-.dots{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; min-height:8px}
-.dots span{width:8px; height:8px; border-radius:50%; display:inline-block}
-.dots .d-allow{background:var(--allow)} .dots .d-allow_limited{background:var(--limited)} .dots .d-human_approval{background:var(--approval)} .dots .d-deny{background:var(--deny)}
-.branch{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-top:4px}
-.branch:empty{display:none}
-@media (max-width:1100px){.pipe{flex-wrap:wrap; gap:8px} .ln{display:none}}
-.row.child{margin-left:22px; border-left-style:dashed}
-.row .lease-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-left:8px; font-weight:400; letter-spacing:0}
-.row.deleg{border-left-color:var(--approval)}
-.row.deleg .call{color:var(--approval)}
-@media (max-width:1100px){.top{flex-wrap:wrap} .controls{flex:1 1 100%}}
-select{
-  background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
-  border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px; max-width:220px;
-}
-select.mini{padding:7px 8px; font-size:12px; max-width:150px}
-select:focus-visible,.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
-#backendTag{display:none; flex:none}
-#backendTag.on{display:inline}
-#backendTag .tagword{color:var(--accent)}
-.planner-note{color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
-.planner-note b{color:var(--ink-2); font-weight:500}
-.btn{
-  border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink);
-  border-radius:8px; padding:8px 13px; font-size:13px; cursor:pointer; white-space:nowrap;
-  transition:border-color .15s, background .15s;
-}
-.btn:hover{border-color:#41566a}
+.scen{display:flex; gap:8px; flex:1; flex-wrap:wrap}
+.pill{border:1px solid var(--line-2); background:transparent; color:var(--ink-2); border-radius:999px; padding:8px 14px; font-size:14px; cursor:pointer}
+.pill:hover{border-color:var(--accent)}
+.pill.active{background:rgba(90,209,219,.12); border-color:var(--accent); color:var(--ink)}
+.controls{display:flex; align-items:center; gap:12px; flex:none}
+.btn{border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink); border-radius:10px; padding:10px 16px; font-size:15px; cursor:pointer}
+.btn:hover{border-color:#4a5f75}
 .btn:disabled{opacity:.4; cursor:not-allowed}
-.btn.primary{background:var(--accent); color:#052024; border-color:transparent; font-weight:600}
+.btn.primary{background:var(--accent); color:#052024; border-color:transparent; font-weight:600; padding:10px 22px}
 .btn.primary:hover{filter:brightness(1.06)}
-
-/* scope switch */
-.switch{display:inline-flex; align-items:center; gap:9px; cursor:pointer; font-size:13px; color:var(--muted); user-select:none}
+.btn.small{padding:7px 12px; font-size:13px}
+select{display:none}
+.switch{display:inline-flex; align-items:center; gap:9px; cursor:pointer; font-size:14px; color:var(--muted); user-select:none}
 .switch input{position:absolute; opacity:0; pointer-events:none}
-.track{width:40px; height:23px; border-radius:999px; background:var(--line-2); position:relative; transition:background .15s}
-.track::after{content:""; position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%; background:var(--muted); transition:transform .15s, background .15s}
+.track{width:44px; height:25px; border-radius:999px; background:var(--line-2); position:relative; transition:background .15s}
+.track::after{content:""; position:absolute; top:2px; left:2px; width:21px; height:21px; border-radius:50%; background:var(--muted); transition:transform .15s, background .15s}
 .switch input:checked + .track{background:rgba(62,210,166,.32)}
-.switch input:checked + .track::after{transform:translateX(17px); background:var(--allow)}
-.switch b{color:var(--ink); font-weight:500; min-width:22px}
-
-.rec{
-  display:none; align-items:center; gap:7px; font-size:12.5px; color:var(--limited);
-  border:1px solid rgba(242,180,74,.4); background:rgba(242,180,74,.1);
-  padding:5px 11px; border-radius:999px; flex:none;
-}
+.switch input:checked + .track::after{transform:translateX(19px); background:var(--allow)}
+.switch b{color:var(--ink); font-weight:500; min-width:60px}
+select:focus-visible,.btn:focus-visible,.pill:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.rec{display:none; align-items:center; gap:8px; font-size:13px; color:var(--limited); border:1px solid rgba(242,180,74,.4); background:rgba(242,180,74,.1); border-radius:999px; padding:5px 12px}
 .rec.on{display:inline-flex}
 .rec.live{color:var(--accent); border-color:rgba(90,209,219,.4); background:rgba(90,209,219,.1)}
 .rec.live .blip{background:var(--accent)}
 .rec .blip{width:8px; height:8px; border-radius:50%; background:var(--limited); animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* layout */
-.body{
-  display:grid; grid-template-columns:minmax(340px,2fr) minmax(380px,3fr);
-  gap:0; max-width:1440px; margin:0 auto; min-height:calc(100vh - 61px);
-}
-@media (max-width:900px){.body{grid-template-columns:1fr}}
-.lease{padding:24px; background:var(--surface); border-right:1px solid var(--line)}
-@media (max-width:900px){.lease{border-right:0; border-bottom:1px solid var(--line)}}
-.ledger{padding:24px; background:var(--bg)}
-.sec{font-family:"Bricolage Grotesque",sans-serif; font-size:18px; font-weight:600; color:var(--ink); margin:0 0 12px; letter-spacing:-0.01em}
-.lease .sec:not(:first-child){margin-top:28px}
+/* task band */
+.taskband{display:grid; grid-template-columns:auto 1fr auto; gap:6px 22px; align-items:baseline; padding:16px 28px; border-bottom:1px solid var(--line)}
+.tlabel{font-family:"Bricolage Grotesque",sans-serif; font-size:15px; font-weight:600; color:var(--muted)}
+.task{font-size:19px; line-height:1.45; color:var(--ink); max-width:1100px}
+.who{grid-column:2; font-size:14px; color:var(--muted)}
+.who b{font-family:"IBM Plex Mono",monospace; font-weight:500; color:var(--ink-2); font-size:13.5px}
+#backendTag{grid-column:3; grid-row:1; font-size:13px; color:var(--muted); white-space:nowrap}
+#backendTag .tagword{color:var(--accent)}
 
-.task{font-size:14.5px; line-height:1.5; color:var(--ink)}
-/* task + plan as a vertical flow */
+/* three acts */
+.stage{display:grid; grid-template-columns:minmax(260px,26fr) 28px minmax(280px,30fr) 28px minmax(360px,44fr); gap:0 12px; padding:22px 28px 28px; flex:1; align-items:start}
+.col{min-width:0}
+.sec{font-family:"Bricolage Grotesque",sans-serif; font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:0 0 14px; display:flex; align-items:center; gap:10px}
+.sec .num{width:26px; height:26px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line-2); color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:13px; display:inline-flex; align-items:center; justify-content:center}
+.arrow{align-self:start; margin-top:64px; width:28px; height:28px; color:var(--line-2)}
+.arrow svg{width:28px; height:28px; display:block}
+
+/* act 1: plan as a flow */
 .flowd{position:relative; padding-left:18px}
 .flowd::before{content:""; position:absolute; left:5px; top:14px; bottom:14px; width:2px; background:var(--line-2)}
-.fnode{position:relative; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:0 0 10px}
-.fnode::before{content:""; position:absolute; left:-18px; top:16px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--line-2); box-sizing:border-box}
-.fnode.root{border-color:var(--accent)}
-.fnode.root::before{border-color:var(--accent); background:var(--accent)}
-.fk{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); margin-bottom:4px}
-.plan{list-style:none; margin:0; padding:0; color:var(--ink-2); font-size:13.5px}
-.plan li{position:relative; margin:0 0 10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 12px; line-height:1.45}
-.plan li::before{content:""; position:absolute; left:-18px; top:14px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--line-2); box-sizing:border-box}
-.plan li .tool{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent); background:rgba(90,209,219,.1); border:1px solid rgba(90,209,219,.25); border-radius:6px; padding:1px 7px; margin-bottom:5px}
-.plan li.done{border-color:rgba(62,210,166,.5)} .plan li.done::before{border-color:var(--allow); background:var(--allow)}
-.plan li.denied{border-color:rgba(255,107,107,.5)} .plan li.denied::before{border-color:var(--deny); background:var(--deny)}
-.plan li.limited{border-color:rgba(242,180,74,.5)} .plan li.limited::before{border-color:var(--limited); background:var(--limited)}
-.plan li.hint{background:none; border:0; padding:4px 0; color:var(--muted); font-size:13px}
+.plan{list-style:none; margin:0; padding:0; color:var(--ink-2); font-size:14.5px}
+.plan li{position:relative; margin:0 0 10px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 13px; line-height:1.45}
+.plan li::before{content:""; position:absolute; left:-18px; top:15px; width:12px; height:12px; border-radius:50%; background:var(--bg); border:2px solid var(--line-2); box-sizing:border-box}
+.plan li .tool{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--accent); background:rgba(90,209,219,.1); border:1px solid rgba(90,209,219,.25); border-radius:6px; padding:1px 8px; margin-bottom:6px}
+.plan li.done{border-color:rgba(62,210,166,.55)} .plan li.done::before{border-color:var(--allow); background:var(--allow)}
+.plan li.denied{border-color:rgba(255,107,107,.55)} .plan li.denied::before{border-color:var(--deny); background:var(--deny)}
+.plan li.limited{border-color:rgba(242,180,74,.55)} .plan li.limited::before{border-color:var(--limited); background:var(--limited)}
+.plan li.hint{background:none; border:0; padding:4px 0; color:var(--muted); font-size:14px}
 .plan li.hint::before{display:none}
-.hint{color:var(--muted); font-size:13.5px; padding:4px 0}
+.hint{color:var(--muted); font-size:14px; padding:4px 0}
 
-/* lease card */
+/* act 2: lease */
 #leaseCard{transition:opacity .3s ease}
 #leaseCard.dim{opacity:.62}
-.leasehead{display:flex; align-items:center; gap:22px; margin:8px 0 4px}
+#leaseCard.empty .leasehead,#leaseCard.empty .lease-idline{display:none}
+.leasehead{display:flex; align-items:center; gap:22px; margin:2px 0 8px}
 .ringwrap{display:flex; flex-direction:column; align-items:center; gap:8px; flex:none}
-.ring{width:104px; height:104px; display:block}
-.ring text{font-family:"Bricolage Grotesque",sans-serif; font-weight:600; font-size:16px; fill:var(--ink)}
+.ring{width:132px; height:132px; display:block}
+.ring text{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:15px; fill:var(--ink)}
 .ring circle.arc{transition:stroke-dashoffset .5s linear, stroke .3s}
 #leaseCard.dim .ring text{fill:var(--muted)}
-.lease-state{font-size:12px; letter-spacing:.04em; color:var(--muted); min-height:16px}
+.lease-state{font-size:13px; letter-spacing:.04em; color:var(--muted); min-height:16px}
 .lease-state.active{color:var(--accent)}
-.lease-state.ended{color:var(--muted)}
-.leasehead .meta{font-size:13px; color:var(--muted); line-height:1.7}
-.leasehead .meta b{color:var(--ink); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
-
-/* capabilities: one list, thin dividers, no card borders */
-.caps{margin-top:6px}
-.cap{padding:13px 0; border-bottom:1px solid var(--line)}
+.leasehead .meta{font-size:14px; color:var(--muted); line-height:1.8}
+.leasehead .meta b{color:var(--ink); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:13.5px}
+.caps{margin-top:4px}
+.cap{padding:12px 0; border-bottom:1px solid var(--line)}
 .cap:last-child{border-bottom:0}
-.cap .tool{font-family:"Bricolage Grotesque",sans-serif; font-size:14px; font-weight:600; color:var(--ink-2); text-transform:capitalize}
-.cap ul{list-style:none; margin:7px 0 0; padding:0}
-.cap li{display:flex; gap:8px; align-items:baseline; padding:3px 0; font-size:13.5px; line-height:1.5}
-.cap li::before{font-family:"IBM Plex Mono",monospace; flex:none}
+.cap .tool{font-family:"Bricolage Grotesque",sans-serif; font-size:15px; font-weight:600; color:var(--ink-2); text-transform:capitalize}
+.cap ul{list-style:none; margin:6px 0 0; padding:0}
+.cap li{display:flex; gap:9px; align-items:baseline; padding:3px 0; font-size:14.5px; line-height:1.5}
+.cap li::before{font-family:"IBM Plex Mono",monospace; flex:none; font-size:15px}
 .cap li.y{color:var(--ink)} .cap li.y::before{content:"\2713"; color:var(--allow)}
 .cap li.s{color:var(--ink)} .cap li.s::before{content:"\2713"; color:var(--approval)}
 .cap li.n{color:var(--muted)} .cap li.n::before{content:"\2717"; color:var(--muted)}
-.cap .w{color:inherit}
-.cap .res{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2)}
-.cap .need{color:var(--approval); font-size:12px}
+.cap .res{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--ink-2)}
+.cap .need{color:var(--approval); font-size:12.5px}
+.planner-note{display:none}
+.lease-id{display:none}
 
-/* ledger rows: left color stripe */
-.row{
-  display:flex; flex-direction:column; gap:4px;
-  border-left:3px solid transparent; padding:13px 0 13px 16px;
-  border-bottom:1px solid var(--line); animation:enter .2s ease;
-}
+/* act 3: decisions */
+.row{display:flex; flex-direction:column; gap:5px; border-left:4px solid transparent; padding:13px 0 13px 16px; border-bottom:1px solid var(--line); animation:enter .2s ease}
 .row.d-allow{border-left-color:var(--allow)}
 .row.d-allow_limited{border-left-color:var(--limited)}
 .row.d-human_approval{border-left-color:var(--approval)}
 .row.d-deny{border-left-color:var(--deny)}
+.row.child{margin-left:22px; border-left-style:dashed}
+.row .lease-tag{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--approval); margin-left:10px; font-weight:400; letter-spacing:0}
+.row.deleg{border-left-color:var(--approval)}
+.row.deleg .call{color:var(--approval)}
 @keyframes enter{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
-.dec{
-  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500; letter-spacing:.06em;
-}
-.dec.d-allow{color:var(--allow)}
-.dec.d-allow_limited{color:var(--limited)}
-.dec.d-human_approval{color:var(--approval)}
-.dec.d-deny{color:var(--deny)}
-.call{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--ink); word-break:break-word}
-.why{color:var(--muted); font-size:13px}
+.dec{font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-weight:500; letter-spacing:.08em}
+.dec.d-allow{color:var(--allow)} .dec.d-allow_limited{color:var(--limited)} .dec.d-human_approval{color:var(--approval)} .dec.d-deny{color:var(--deny)}
+.call{font-family:"IBM Plex Mono",monospace; font-size:14.5px; color:var(--ink); word-break:break-word}
+.why{color:var(--muted); font-size:14px}
 .why.deny{color:var(--deny)}
 .tag-narrow{color:var(--limited)}
-.prov{color:var(--muted); font-size:12px; margin-top:2px; font-style:italic}
-
-/* injection callout: soft tint + quote bar */
-.inj{
-  border-left:3px solid rgba(255,107,107,.55); background:rgba(255,107,107,.06);
-  border-radius:0 8px 8px 0; padding:12px 14px; margin:12px 0; animation:enter .2s ease;
-}
-.inj .h{font-size:12.5px; color:var(--deny); font-weight:600; margin-bottom:5px}
+.prov{color:var(--muted); font-size:13px; margin-top:2px; font-style:italic}
+.inj{border-left:4px solid rgba(255,107,107,.6); background:rgba(255,107,107,.07); border-radius:0 8px 8px 0; padding:12px 16px; margin:12px 0; animation:enter .2s ease}
+.inj .h{font-size:13.5px; color:var(--deny); font-weight:600; margin-bottom:5px}
 .inj .h .src{color:var(--muted); font-weight:400}
-.inj .txt{font-size:13px; color:var(--ink); line-height:1.55}
-
-.agentmsg{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:12px 14px; margin:14px 0 0; font-size:13.5px; color:var(--ink); line-height:1.55; animation:enter .2s ease}
-.agentmsg .h{font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:5px}
-
-.end{padding:12px 14px; margin-top:14px; border:1px dashed var(--line-2); border-radius:10px; color:var(--muted); font-size:13px}
-.empty{color:var(--muted); font-size:13.5px; padding:20px 0}
-
-/* approval card */
+.inj .txt{font-size:14.5px; color:var(--ink); line-height:1.55}
+.agentmsg{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:12px 16px; margin:14px 0 0; font-size:14.5px; color:var(--ink); line-height:1.55; animation:enter .2s ease}
+.agentmsg .h{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:5px}
+.agentmsg .txt{max-height:4.6em; overflow:hidden}
+.agentmsg.open .txt{max-height:none}
+.agentmsg .more{margin-top:6px; color:var(--accent); font-size:13px; cursor:pointer; background:none; border:0; padding:0; font-family:inherit}
+.end{padding:12px 16px; margin-top:14px; border:1px dashed var(--line-2); border-radius:10px; color:var(--muted); font-size:14px}
+.empty{color:var(--muted); font-size:14px; padding:12px 0}
 .modal{border:1px solid var(--approval); background:var(--surface); border-radius:12px; padding:16px 18px; margin:0 0 16px; animation:enter .2s ease}
-.modal .tag{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.06em; color:var(--approval); margin-bottom:7px}
-.modal h5{margin:0 0 9px; font-size:15px; font-weight:600; font-family:"IBM Plex Mono",monospace; color:var(--ink); word-break:break-word}
-.modal .kv2{font-size:13px; color:var(--muted); line-height:1.75}
+.modal .tag{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em; color:var(--approval); margin-bottom:7px}
+.modal h5{margin:0 0 9px; font-size:15.5px; font-weight:600; font-family:"IBM Plex Mono",monospace; color:var(--ink); word-break:break-word}
+.modal .kv2{font-size:14px; color:var(--muted); line-height:1.75}
 .modal .kv2 b{color:var(--ink); font-weight:500}
-.modal .acts{display:flex; flex-wrap:nowrap; gap:9px; margin-top:14px}
+.modal .acts{display:flex; flex-wrap:wrap; gap:9px; margin-top:14px}
 .btn.approve{background:var(--approval); color:#150c33; border-color:transparent; font-weight:600}
 .btn.deny-btn{color:var(--deny); border-color:rgba(255,107,107,.45)}
 
 /* audit panel */
 .audit{max-height:0; overflow:hidden; transition:max-height .35s ease; border-top:1px solid var(--line); background:var(--surface)}
 .audit.open{max-height:2200px}
-.audit-inner{padding:20px 24px; max-width:1440px; margin:0 auto}
+.audit-inner{padding:20px 28px; max-width:1500px; margin:0 auto}
 .audit-head{display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap}
-.audit-head h3{font-family:"Bricolage Grotesque",sans-serif; font-size:18px; font-weight:600}
-.badge{font-size:12px; padding:4px 11px; border-radius:999px; font-family:"IBM Plex Mono",monospace}
+.audit-head h3{font-family:"Bricolage Grotesque",sans-serif; font-size:20px; font-weight:700}
+.badge{font-size:13px; padding:4px 12px; border-radius:999px; font-family:"IBM Plex Mono",monospace}
 .badge.ok{background:rgba(62,210,166,.14); color:var(--allow); border:1px solid rgba(62,210,166,.4)}
 .badge.bad{background:rgba(255,107,107,.14); color:var(--deny); border:1px solid rgba(255,107,107,.4)}
-table{border-collapse:collapse; width:100%; font-size:12.5px; background:var(--bg); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+table{border-collapse:collapse; width:100%; font-size:13px; background:var(--bg); border:1px solid var(--line); border-radius:10px; overflow:hidden}
 th,td{text-align:left; padding:9px 11px; border-bottom:1px solid var(--line); vertical-align:top}
-th{font-weight:600; background:var(--surface-2); font-size:12px; color:var(--muted)}
+th{font-weight:600; background:var(--surface-2); font-size:12.5px; color:var(--muted)}
 tr:last-child td{border-bottom:0}
-td .mono{font-size:11.5px}
+td .mono{font-size:12px}
 .hash{color:var(--muted)}
 
-@media (prefers-reduced-motion: reduce){
-  *{animation:none !important}
-  .ring circle.arc,.track,.track::after,.btn,#leaseCard,.audit{transition:none !important}
-}
+@media (max-width:1000px){.stage{grid-template-columns:1fr} .arrow{display:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important} .ring circle.arc,.track,.track::after,.btn,#leaseCard,.audit{transition:none !important}}
 </style>
 </head>
 <body>
 
 <header class="top">
   <span class="brand">Scope<span class="dot">.</span></span>
-  <div class="idline">
-    <span class="kv" style="display:none">agent <b id="agentId">-</b></span>
-    <span class="kv" style="display:none">for <b id="obo">-</b></span>
-    <span class="kv" style="display:none">lease <b id="leaseId">-</b></span>
-    <span class="kv" id="backendTag"></span>
-  </div>
+  <nav class="scen" id="scenPills" aria-label="scenario"></nav>
   <div class="controls">
     <span class="rec" id="recBadge"><span class="blip"></span>recording</span>
     <select id="scenario" aria-label="scenario"></select>
-    <select id="modelSelect" class="mini" aria-label="agent model" title="agent model"></select>
-    <select id="injectionSelect" class="mini" aria-label="injection variant" title="injection variant"></select>
+    <select id="modelSelect" class="mini" aria-label="agent model"></select>
+    <select id="injectionSelect" class="mini" aria-label="injection variant"></select>
     <label class="switch" title="turn Scope enforcement on or off">
       <input type="checkbox" id="scopeToggle" checked>
       <span class="track"></span>
       <b id="scopeLabel">on</b>
     </label>
     <button class="btn primary" id="runBtn">Run task</button>
-    <select id="replaySelect" class="mini" aria-label="recording to replay" title="recording to replay"></select>
-    <button class="btn" id="replayBtn" disabled>Replay</button>
-    <button class="btn" id="exportBtn" disabled>Export audit</button>
+    <select id="replaySelect" class="mini" aria-label="recording to replay"></select>
+    <button class="btn small" id="replayBtn" disabled>Replay</button>
+    <button class="btn small" id="exportBtn" disabled>Export audit</button>
   </div>
 </header>
 
+<div class="taskband">
+  <div class="tlabel">Task</div>
+  <div class="task" id="task">Pick a scenario and press Run task.</div>
+  <span id="backendTag"></span>
+  <div class="who" id="whoLine"></div>
+  <span hidden id="agentId"></span><span hidden id="obo"></span><span hidden id="leaseId"></span>
+</div>
 
-<div class="body">
-  <section class="lease">
-    <h4 class="sec">Task and plan</h4>
+<div class="stage">
+  <section class="col">
+    <h4 class="sec"><span class="num">1</span>The agent plans</h4>
     <div class="flowd">
-      <div class="fnode root"><div class="fk">task</div><div class="task" id="task">Pick a scenario and press Run task.</div></div>
-      <ol class="plan" id="plan"><li class="hint">The agent's plan appears here as steps, before any tool call. Each step lights up when its call is checked.</li></ol>
+      <ol class="plan" id="plan"><li class="hint">The plan appears here before any tool call. Each step lights up when its call is checked.</li></ol>
     </div>
-
-    <h4 class="sec">Lease</h4>
-    <div class="who" id="whoLine"></div>
+  </section>
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M8 5l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <section class="col">
+    <h4 class="sec"><span class="num">2</span>Scope issues a lease</h4>
     <div id="leaseCard" class="empty">
       <div class="leasehead">
         <div class="ringwrap">
           <svg class="ring" id="ring" viewBox="0 0 72 72" role="img" aria-label="lease time remaining">
-            <circle cx="36" cy="36" r="27" fill="none" stroke="#1F2A36" stroke-width="6"></circle>
+            <circle cx="36" cy="36" r="27" fill="none" stroke="#1F2B38" stroke-width="6"></circle>
             <circle class="arc" id="arc" cx="36" cy="36" r="27" fill="none" stroke="#5AD1DB" stroke-width="6"
                     stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"
                     transform="rotate(-90 36 36)"></circle>
@@ -295,18 +223,16 @@ td .mono{font-size:11.5px}
           </svg>
           <div class="lease-state" id="leaseState"></div>
         </div>
-        <div class="meta" id="leaseMeta">
-          issued <b>--:--:--</b><br>expires <b>--:--:--</b><br>ceiling <b>policy/*.yaml</b>
-        </div>
+        <div class="meta" id="leaseMeta">issued <b>--:--:--</b><br>expires <b>--:--:--</b><br>ceiling <b>policy/*.yaml</b></div>
       </div>
-      <div class="caps" id="caps"><div class="hint">Issued from the plan when the task starts. Only what the task needs, for ten minutes.</div></div>
+      <div class="caps" id="caps"><div class="hint">Only what the plan needs, signed, for ten minutes. Everything else stays off.</div></div>
     </div>
   </section>
-
-  <section class="ledger">
-    <h4 class="sec">Decisions</h4>
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M8 5l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <section class="col">
+    <h4 class="sec"><span class="num">3</span>Every call, checked</h4>
     <div id="approvalHost"></div>
-    <div id="ledger"><div class="empty">Every tool call the agent makes lands here with its decision.</div></div>
+    <div id="ledger"><div class="empty">Each tool call the agent makes lands here with its decision.</div></div>
   </section>
 </div>
 
@@ -316,8 +242,8 @@ td .mono{font-size:11.5px}
       <h3>Audit ledger</h3>
       <span class="badge" id="chainBadge">-</span>
       <span class="spacer" style="flex:1"></span>
-      <button class="btn" id="downloadBtn">Download JSON</button>
-      <button class="btn" id="closeAudit">Close</button>
+      <button class="btn small" id="downloadBtn">Download JSON</button>
+      <button class="btn small" id="closeAudit">Close</button>
     </div>
     <div style="overflow-x:auto"><table id="auditTable"></table></div>
   </div>
@@ -604,7 +530,10 @@ function onPlan(d){
     const li = document.createElement("li");
     const t = stepTool(step);
     if(t) li.dataset.tool = t;
-    li.innerHTML = (t ? '<span class="tool">' + esc(t) + '</span><br>' : "") + esc(String(step).replace(/^\d+[.)]\s*/, ""));
+    let text = String(step).replace(/^\d+[.)]\s*/, "");
+    if(t) text = text.replace(new RegExp("^(use\\s+)?" + t.replace(".", "[._ ]") + "(\\s*\\([^)]*\\))?\\s*[:\\u2014\\u2013-]\\s*", "i"), "");
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    li.innerHTML = (t ? '<span class="tool">' + esc(t) + '</span><br>' : "") + esc(text);
     ol.appendChild(li);
   });
 }
@@ -993,6 +922,27 @@ $("scopeToggle").addEventListener("change", (e) => {
 loadConfig();
 loadScenarios();
 loadRecordings();
+</script>
+
+
+
+<script>
+// scenario chips mirror the hidden select so the existing run logic keeps working
+(function(){
+  const sel = document.getElementById("scenario"), nav = document.getElementById("scenPills");
+  function build(){
+    nav.innerHTML = "";
+    [...sel.options].forEach((o) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "pill" + (o.value === sel.value ? " active" : "");
+      const short = {"file-issue": "Payment bug", "support": "Customer support", "ai-org": "AI organization", "fix-deploy": "Fix and deploy"};
+      b.textContent = short[o.value] || o.textContent;
+      b.addEventListener("click", () => { sel.value = o.value; sel.dispatchEvent(new Event("change", {bubbles:true})); build(); });
+      nav.appendChild(b);
+    });
+  }
+  const tick = setInterval(() => { if(sel.options.length){ build(); clearInterval(tick); } }, 150);
+  sel.addEventListener("change", build);
+})();
 </script>
 </body>
 </html>
