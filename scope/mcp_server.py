@@ -94,7 +94,7 @@ async def main() -> None:
         env = {k: v for k, v in os.environ.items() if k.startswith("SCOPE_")}
         env.update({"SCOPE_RUN_DIR": str(child_dir), "SCOPE_EVENTS_FILE": str(EVENTS), "SCOPE_APPROVALS_DIR": str(APPROVALS)})
         system = (f"You are {child.principal}, a worker agent at Acme acting for {child.on_behalf_of}. Do exactly the sub-task you were given, "
-                  "using only the tools you have, then reply with your report in plain sentences. If a call is denied, do not retry it.")
+                  "using only the tools you have, then reply with your report in plain sentences, no markdown, no headings, no bullet lists. If a call is denied, do not retry it.")
         try:
             text, _meta = await cli_agent(f"Sub-task: {child.task}\nUse only the scope tools.", system, child_dir, env, max_turns=10,
                                           model=os.environ.get("SCOPE_WORKER_MODEL"))
