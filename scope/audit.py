@@ -66,3 +66,44 @@ class Ledger:
 
     def export(self) -> dict[str, Any]:
         return {"lease_id": self.lease_id, "chain_ok": self.verify(), "entries": list(self.entries)}
+
+
+def attest(export: dict[str, Any], lease: dict[str, Any] | None = None) -> dict[str, Any]:
+    """A compact record a reviewer can file: the lease, the head hash, the count, and whether the chain verifies."""
+    entries = export.get("entries", [])
+    head = entries[-1]["hash"] if entries else GENESIS
+    return {
+        "lease_id": export.get("lease_id"),
+        "principal": entries[0]["principal"] if entries else None,
+        "on_behalf_of": entries[0]["on_behalf_of"] if entries else None,
+        "task": entries[0]["task"] if entries else None,
+        "entries": len(entries),
+        "decisions": {d: sum(1 for e in entries if e["decision"] == d) for d in ("ALLOW", "ALLOW_LIMITED", "HUMAN_APPROVAL", "DENY")},
+        "head_hash": head,
+        "chain_ok": verify_entries(entries),
+        "lease_sig": (lease or {}).get("sig"),
+        "attested_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+    }
+
+
+def verify_entries(entries: list[dict[str, Any]]) -> bool:
+    probe = Ledger("", "", "", "")
+    probe.entries = list(entries)
+    return probe.verify()
+
+
+def to_jsonl(entries: list[dict[str, Any]]) -> str:
+    """One JSON object per line, for a SIEM or log pipeline."""
+    return "".join(_canon(e) + "\n" for e in entries)
+
+
+if __name__ == "__main__":  # uv run python -m scope.audit verify audit.json
+    import sys
+
+    if len(sys.argv) == 3 and sys.argv[1] == "verify":
+        data = json.load(open(sys.argv[2]))
+        entries = data.get("entries", data if isinstance(data, list) else [])
+        ok = verify_entries(entries)
+        print(f"{len(entries)} entries, chain {'intact' if ok else 'BROKEN'}, head {entries[-1]['hash'][:16] if entries else GENESIS[:16]}")
+        sys.exit(0 if ok else 1)
+    print("usage: python -m scope.audit verify <audit.json>")

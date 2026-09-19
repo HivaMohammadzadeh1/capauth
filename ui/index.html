@@ -25,9 +25,9 @@ h1,h2,h3,h4{margin:0}
 button{font-family:inherit}
 a{color:var(--accent)}
 
-/* top bar: identity on row 1, controls on row 2 */
+/* top bar: one row */
 .top{
-  display:flex; flex-wrap:wrap; align-items:center; gap:12px 14px;
+  display:flex; flex-wrap:nowrap; align-items:center; gap:12px 14px;
   padding:14px 24px; border-bottom:1px solid var(--line);
   background:var(--surface); position:sticky; top:0; z-index:20;
 }
@@ -36,7 +36,17 @@ a{color:var(--accent)}
 .idline{display:flex; align-items:center; gap:16px; flex:1; min-width:0; overflow:hidden; white-space:nowrap}
 .kv{color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis}
 .kv b{color:var(--ink-2); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
-.controls{display:flex; align-items:center; gap:10px; flex:1 1 100%; flex-wrap:wrap; justify-content:flex-end}
+.controls{display:flex; align-items:center; gap:10px; flex:0 0 auto; flex-wrap:nowrap; justify-content:flex-end}
+#modelSelect,#injectionSelect,#replaySelect{display:none}
+.planner-note{display:none}
+.leasehead .meta{display:none}
+#leaseCard.empty .leasehead{display:none}
+.lease-id{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); margin-top:6px}
+.row.child{margin-left:22px; border-left-style:dashed}
+.row .lease-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-left:8px; font-weight:400; letter-spacing:0}
+.row.deleg{border-left-color:var(--approval)}
+.row.deleg .call{color:var(--approval)}
+@media (max-width:1100px){.top{flex-wrap:wrap} .controls{flex:1 1 100%}}
 select{
   background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
   border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px; max-width:220px;
@@ -229,11 +239,11 @@ td .mono{font-size:11.5px}
     <h4 class="sec">Task</h4>
     <div class="task" id="task">Pick a scenario and press Run task.</div>
 
-    <h4 class="sec">Agent plan</h4>
-    <ol class="plan" id="plan"><li class="hint">The plan appears here on Run task.</li></ol>
+    <h4 class="sec">Plan</h4>
+    <ol class="plan" id="plan"><li class="hint">Written by the agent before any tool call.</li></ol>
 
-    <h4 class="sec">Temporary capabilities</h4>
-    <div id="leaseCard">
+    <h4 class="sec">Lease</h4>
+    <div id="leaseCard" class="empty">
       <div class="leasehead">
         <div class="ringwrap">
           <svg class="ring" id="ring" viewBox="0 0 72 72" role="img" aria-label="lease time remaining">
@@ -249,14 +259,14 @@ td .mono{font-size:11.5px}
           issued <b>--:--:--</b><br>expires <b>--:--:--</b><br>ceiling <b>policy/*.yaml</b>
         </div>
       </div>
-      <div class="caps" id="caps"><div class="hint">Run task to issue a lease</div></div>
+      <div class="caps" id="caps"><div class="hint">Issued from the plan when the task starts. Only what the task needs, for ten minutes.</div></div>
     </div>
   </section>
 
   <section class="ledger">
-    <h4 class="sec">Live actions</h4>
+    <h4 class="sec">Decisions</h4>
     <div id="approvalHost"></div>
-    <div id="ledger"><div class="empty">Run a task to see decisions land here.</div></div>
+    <div id="ledger"><div class="empty">Every tool call the agent makes lands here with its decision.</div></div>
   </section>
 </div>
 
@@ -416,7 +426,7 @@ async function runTask(){
   setRunning(true);
 
   es = new EventSource("/api/runs/" + run_id + "/events");
-  ["run_started","plan","lease_issued","tool_call","decision","approval_requested",
+  ["run_started","plan","lease_issued","lease_delegated","tool_call","decision","approval_requested",
    "approval_resolved","tool_result","injection_seen","agent_message","lease_revoked",
    "run_finished","error"].forEach((t) => {
     es.addEventListener(t, (ev) => {
@@ -440,6 +450,7 @@ function stopEverything(){
 }
 
 function resetView(){
+  $("leaseCard").classList.add("empty");
   $("ledger").innerHTML = "";
   $("approvalHost").innerHTML = "";
   $("plan").innerHTML = "";
@@ -458,6 +469,7 @@ function handle(type, d){
     case "run_started": onRunStarted(d); break;
     case "plan": onPlan(d); break;
     case "lease_issued": onLease(d); break;
+    case "lease_delegated": onDelegated(d); break;
     case "decision": onDecision(d); break;
     case "approval_requested": onApprovalRequested(d); break;
     case "approval_resolved": onApprovalResolved(d); break;
@@ -499,6 +511,7 @@ function onPlan(d){
 
 function onLease(d){
   const lease = d.lease || {};
+  $("leaseCard").classList.remove("empty");
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
@@ -555,12 +568,24 @@ function renderCaps(lease, excluded){
   });
 }
 
+function onDelegated(d){
+  const led = $("ledger");
+  const first = led.querySelector(".empty"); if(first) first.remove();
+  const caps = (d.lease && d.lease.capabilities || []).map((c) => c.tool + "." + c.action + " " + humanRes(c.resource));
+  const row = document.createElement("div"); row.className = "row deleg";
+  row.innerHTML = '<span class="dec d-human_approval">DELEGATED</span><div><div class="call">worker lease ' + esc(d.lease_id) +
+    ' issued under ' + esc(d.parent_lease_id) + ', ' + caps.length + (caps.length === 1 ? ' capability' : ' capabilities') + '</div>' +
+    '<div class="why">' + esc(caps.join(", ")) + '</div><div class="prov">' + esc(d.task || "") + '</div></div>';
+  led.appendChild(row); row.scrollIntoView({block:"nearest"});
+}
+
 function onDecision(d){
   const led = $("ledger");
   const first = led.querySelector(".empty");
   if(first) first.remove();
-  const cls = "d-" + String(d.decision).toLowerCase();
-  let inner = '<span class="dec ' + cls + '">' + (DEC_LABEL[d.decision] || d.decision) + "</span><div>";
+  const cls = "d-" + String(d.decision).toLowerCase() + (d.depth ? " child" : "");
+  const tag = d.depth ? '<span class="lease-tag">worker ' + esc(d.lease_id || "") + '</span>' : "";
+  let inner = '<span class="dec ' + cls + '">' + (DEC_LABEL[d.decision] || d.decision) + tag + "</span><div>";
   inner += '<div class="call">' + esc(d.call_str) + "</div>";
   const denyCls = d.decision === "DENY" ? " deny" : "";
   let why = esc(d.reason || "");
@@ -571,11 +596,12 @@ function onDecision(d){
   if(d.provenance) inner += '<div class="prov">' + esc(d.provenance) + "</div>";
   inner += "</div>";
 
-  let row = current.rows.get(d.seq);
+  const key = (d.lease_id || "") + ":" + d.seq;
+  let row = current.rows.get(key);
   if(row){ row.className = "row " + cls; row.innerHTML = inner; }   // upsert: approval row becomes ALLOW/DENY
   else{
     row = document.createElement("div"); row.className = "row " + cls;
-    row.innerHTML = inner; current.rows.set(d.seq, row); led.appendChild(row);
+    row.innerHTML = inner; current.rows.set(key, row); led.appendChild(row);
   }
   row.scrollIntoView({block:"nearest"});
 }
@@ -839,7 +865,7 @@ $("runBtn").addEventListener("click", runTask);
 $("exportBtn").addEventListener("click", exportAudit);
 $("replayBtn").addEventListener("click", replayRun);
 $("downloadBtn").addEventListener("click", () => {
-  if(current) window.open("/api/runs/" + current.run_id + "/audit", "_blank");
+  if(current && current.serverRun) window.open("/api/runs/" + current.run_id + "/audit", "_blank");
 });
 $("closeAudit").addEventListener("click", () => $("audit").classList.remove("open"));
 $("scenario").addEventListener("change", () => {

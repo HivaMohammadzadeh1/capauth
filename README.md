@@ -65,7 +65,15 @@ Tool results return to Claude Code as untrusted content. That path can carry a p
 injection. Scope does not filter it. Whatever the agent reads there, the next tool call
 still has to fit the lease.
 
-The full architecture diagram is at `docs/architecture.svg`.
+![Architecture](docs/diagrams/architecture.svg)
+
+The decision path for one call:
+
+![Decision path](docs/diagrams/decision.svg)
+
+One lease lives as long as one task:
+
+![Lease lifecycle](docs/diagrams/lifecycle.svg)
 
 ## How to run
 
@@ -117,6 +125,24 @@ Scope also caught real overreach that was not an attack. In `fix-deploy` the age
 provenance. In `file-issue` the agent's plan wanted to search every channel, and the lease
 narrowed it to `#payments` before it ran. Least privilege holds independent of model
 behavior.
+
+## Enterprise controls
+
+- **Delegation chains.** `scope.lease.delegate()` issues a child lease for a sub-agent. Every child
+  capability must be covered by a parent capability, the child cannot outlive the parent, and it
+  carries `parent_lease_id` and `depth`, so the ledger shows the chain. Authority narrows at every hop.
+  `POST /api/runs/{run_id}/delegate`.
+- **Lease preview.** `POST /api/leases/preview` with a task and an identity returns the lease that
+  task would get, with what the ceiling clamped out and why, without running anything. A security
+  team can pre-check a task template before an agent ever holds it.
+- **Attestation.** `GET /api/runs/{run_id}/attestation` returns a compact record for a reviewer:
+  lease id, principal, on-behalf-of, decision counts, head hash, chain status, lease signature.
+- **SIEM export.** `GET /api/runs/{run_id}/audit.jsonl` streams one ledger entry per line.
+  `uv run python -m scope.audit verify audit.json` re-verifies a chain offline and exits non-zero on
+  tamper.
+- **Policy as code.** `scope/policy/<identity>.yaml` is the ceiling, the sensitive list, and the
+  never list per agent identity. `GET /api/policies/{identity}` serves it. The planner can only
+  narrow it.
 
 ## Layer 7 alignment
 

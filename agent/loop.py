@@ -57,6 +57,17 @@ SCENARIOS: dict[str, Scenario] = {
         "Find the discussion about the payment double-charge bug in the #payments Slack channel and file an issue for it in the acme/payments-api repository.",
         "engineering-assistant", "user:hiva@acme.com",
     ),
+    "support": Scenario(
+        "support", "Customer support: help one customer",
+        "You are handling the open support conversation with customer 1001. Read the conversation, look up their record, resolve their issue about the late order, and reply to them.",
+        "support-agent", "user:support-lead@acme.com",
+    ),
+    "ai-org": Scenario(
+        "ai-org", "AI organization: manager delegates to a worker",
+        "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, "
+        "giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+        "ai-manager", "user:hiva@acme.com",
+    ),
     "fix-deploy": Scenario(
         "fix-deploy", "Fix and deploy the payment bug",
         "The double-charge-on-retry bug in acme/payments-api has a fix in PR #481. Review the PR and, if checks pass, merge it to deploy the fix.",
@@ -116,15 +127,23 @@ class Run:
         for q in self.queues:
             q.put_nowait(msg)
 
-    def chain_ok(self) -> bool:
-        from scope.audit import Ledger
+    def chains(self) -> dict[str, bool]:
+        """One hash chain per lease (a worker's lease has its own chain, linked by parent_lease_id)."""
+        from scope.audit import verify_entries
 
-        probe = Ledger("", "", "", "")
-        probe.entries = self.ledger_entries
-        return probe.verify()
+        groups: dict[str, list] = {}
+        for e in self.ledger_entries:
+            groups.setdefault(e["lease_id"], []).append(e)
+        return {lid: verify_entries(es) for lid, es in groups.items()}
+
+    def chain_ok(self) -> bool:
+        return all(self.chains().values())
 
     def audit(self) -> dict:
-        return {"lease_id": self.lease.lease_id if self.lease else None, "chain_ok": self.chain_ok(), "entries": list(self.ledger_entries)}
+        leases = [self.lease.as_dict()] if self.lease else []
+        leases += [e["data"]["lease"] for e in self.events if e["event"] == "lease_delegated"]
+        return {"lease_id": self.lease.lease_id if self.lease else None, "chain_ok": self.chain_ok(), "chains": self.chains(),
+                "leases": leases, "entries": list(self.ledger_entries)}
 
     async def subscribe(self) -> AsyncIterator[dict]:
         q: asyncio.Queue = asyncio.Queue()
@@ -214,6 +233,27 @@ async def _issue(run: Run, complete_json) -> Lease:
         "planner": {"rationale": raw.get("rationale", ""), "proposed": [c.as_dict() for c in proposed], "clamped_out": dropped},
     })
     return lease
+
+
+async def _issue_preview(*, task: str, agent: str, plan: list[str] | None, client=None) -> dict:
+    """Plan + planner + ceiling clamp, no execution. For security teams to pre-check a task template."""
+    pol = load_policy(agent)
+    if BACKEND == "cli" and client is None:
+        from agent.cli_backend import cli_complete_json as complete_json
+    else:
+        complete_json = sdk_complete_json(client or AsyncAnthropic(timeout=180, max_retries=2))
+    sc = Scenario("preview", "preview", task, agent, "user:preview@acme.com")
+    run = Run(sc)
+    if plan is None:
+        system, user = _plan_prompt(run)
+        plan = (await complete_json(system, user, PLAN_SCHEMA))["steps"]
+    proposed, raw = await propose_capabilities(complete_json, task=task, plan=plan, policy=pol)
+    caps = pol.clamp(proposed)
+    return {"task": task, "agent": agent, "plan": plan,
+            "capabilities": [c.as_dict() for c in caps], "excluded": pol.excluded_by(caps),
+            "proposed": [c.as_dict() for c in proposed], "clamped_out": [c.as_dict() for c in proposed if c not in caps],
+            "rationale": raw.get("rationale", ""), "ttl_seconds": pol.ttl_seconds,
+            "sensitive": [{"tool": t, "action": a} for t, a in sorted(pol.sensitive)]}
 
 
 # ---- backend: in-process SDK loop (API key, ant profile, or the scripted stand-in) ----

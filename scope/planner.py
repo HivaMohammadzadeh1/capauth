@@ -27,6 +27,12 @@ RESOURCE_FORMATS = {
     ("drive", "list_files"): "file:*",
     ("drive", "read_file"): "file:<name>",
     ("email", "send"): "recipient:<address>  or recipient:*@<domain>",
+    ("scope", "delegate"): "worker:*  (lets the agent hand a narrower lease to a worker agent)",
+    ("chat", "read"): "conversation:current",
+    ("chat", "reply"): "conversation:current",
+    ("crm", "read_customer"): "customer:<id>  (name the one customer the conversation is with)",
+    ("crm", "export"): "customer:*",
+    ("refunds", "issue"): "order:<order id>",
 }
 
 SCHEMA: dict[str, Any] = {
@@ -37,8 +43,8 @@ SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "tool": {"type": "string", "enum": ["slack", "github", "drive", "email"], "description": "tool name only, no dot"},
-                    "action": {"type": "string", "enum": ["search", "read_thread", "post_message", "create_issue", "read_pr", "push", "merge_pr", "delete_repo", "list_files", "read_file", "send"], "description": "action name only"},
+                    "tool": {"type": "string", "enum": ["slack", "github", "drive", "email", "scope", "chat", "crm", "refunds"], "description": "tool name only, no dot"},
+                    "action": {"type": "string", "enum": ["search", "read_thread", "post_message", "create_issue", "read_pr", "push", "merge_pr", "delete_repo", "list_files", "read_file", "send", "delegate", "read", "reply", "read_customer", "export", "issue"], "description": "action name only"},
                     "resource": {"type": "string", "description": "in the format shown for that action"},
                     "justification": {"type": "string"},
                 },
@@ -104,8 +110,12 @@ def _normalize(c: dict[str, Any]) -> Capability:
     tool, action = str(c["tool"]).strip(), str(c["action"]).strip()
     if "." in tool:
         tool, action = tool.split(".", 1)
-    aliases = {"read": "read_thread", "create": "create_issue", "merge": "merge_pr", "list": "list_files", "post": "post_message"}
+    aliases = {"create": "create_issue", "merge": "merge_pr", "list": "list_files", "post": "post_message"}
+    if tool == "slack" and action == "read":
+        action = "read_thread"
     if tool == "drive" and action == "read":
         action = "read_file"
+    if tool in ("chat",) and action == "read_thread":
+        action = "read"
     action = aliases.get(action, action)
     return Capability(tool, action, str(c["resource"]).strip())

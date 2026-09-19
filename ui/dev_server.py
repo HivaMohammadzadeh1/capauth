@@ -286,16 +286,25 @@ def build_audit(run: dict) -> dict:
     return {"lease_id": run["lease_id"], "chain_ok": chain_ok, "entries": entries}
 
 
-# mirrors the real server's persisted recordings, used as the stage fallback
-RECORDING_NAMES = ["file-issue-on", "file-issue-off", "fix-deploy-on"]
+# mirrors the real server's persisted recordings, used as the stage fallback.
+# Real agents never followed the injection in testing, so a live file-issue
+# recording shows the agent declining (no drive/email deny rows). The
+# "-simulated" recordings show a simulated agent that follows the injection.
+SIMULATED_MODEL = "simulated agent (follows the injection)"
+RECORDING_NAMES = [
+    "file-issue-on", "file-issue-off", "fix-deploy-on",
+    "file-issue-on-simulated", "file-issue-off-simulated", "fix-deploy-on-simulated",
+]
 
 
 def build_recording(name: str) -> list[dict] | None:
-    """Synthesize a completed-run event list for '<scenario>-<on|off>', applying
+    """Synthesize a completed-run event list for the recording name, applying
     the same transforms the live driver would, with the approval auto-resolved."""
     if name not in RECORDING_NAMES:
         return None
-    scenario_id, tail = name.rsplit("-", 1)
+    simulated = name.endswith("-simulated")
+    core = name[: -len("-simulated")] if simulated else name
+    scenario_id, tail = core.rsplit("-", 1)
     scope_enabled = tail == "on"
     try:
         fixture = load_fixture(scenario_id)
@@ -306,7 +315,7 @@ def build_recording(name: str) -> list[dict] | None:
     run = {
         "run_id": "rec_" + name,
         "lease_id": lease_id,
-        "model": CONFIG["default_model"],
+        "model": SIMULATED_MODEL if simulated else CONFIG["default_model"],
         "injection_variant": CONFIG["default_variant"],
         "decision_seqs": set(),
         "expires_epoch": 0,
@@ -321,6 +330,11 @@ def build_recording(name: str) -> list[dict] | None:
         item = fixture[i]
         event = item["event"]
         data = dict(item["data"])
+
+        # a live agent declines the injection: drop the drive/email attempts
+        if not simulated and data.get("tool") in ("drive", "email"):
+            i += 1
+            continue
 
         if event in ("approval_requested", "approval_resolved") and not scope_enabled:
             i += 1

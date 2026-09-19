@@ -1,0 +1,15 @@
+principal: agent:ai-manager
+org_domain: acme.com
+ttl_seconds: 900
+# An AI-organization manager: it may read, file issues, and delegate narrow sub-tasks to worker agents.
+ceiling:
+  - {tool: slack,  action: search,        resource: "channel:*"}
+  - {tool: slack,  action: read_thread,   resource: "channel:*"}
+  - {tool: github, action: create_issue,  resource: "repo:acme/*"}
+  - {tool: github, action: read_pr,       resource: "repo:acme/*"}
+  - {tool: scope,  action: delegate,      resource: "worker:*"}
+sensitive: []
+never:
+  - {tool: email,  action: send}
+  - {tool: github, action: merge_pr}
+  - {tool: github, action: delete_repo}

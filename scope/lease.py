@@ -32,6 +32,8 @@ class Lease:
     revoked_at: datetime | None = None
     revoke_reason: str | None = None
     approved_for_task: set[tuple[str, str, str]] = field(default_factory=set)
+    parent_lease_id: str | None = None
+    depth: int = 0
 
     # -- signing -----------------------------------------------------------
     def _payload(self) -> bytes:
@@ -44,6 +46,8 @@ class Lease:
             "sensitive": sorted(self.sensitive),
             "issued_at": _iso(self.issued_at),
             "expires_at": _iso(self.expires_at),
+            "parent_lease_id": self.parent_lease_id,
+            "depth": self.depth,
         }
         return json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
 
@@ -90,6 +94,8 @@ class Lease:
             "ttl_seconds": self.ttl_seconds,
             "sig": self.sig,
             "revoked_at": _iso(self.revoked_at) if self.revoked_at else None,
+            "parent_lease_id": self.parent_lease_id,
+            "depth": self.depth,
         }
 
 
@@ -102,6 +108,7 @@ def lease_from_dict(d: dict) -> Lease:
         capabilities=[Capability(**c) for c in d["capabilities"]],
         sensitive=[(s["tool"], s["action"]) for s in d["sensitive"]],
         issued_at=_parse(d["issued_at"]), expires_at=_parse(d["expires_at"]), sig=d.get("sig", ""),
+        parent_lease_id=d.get("parent_lease_id"), depth=int(d.get("depth", 0)),
     )
 
 
@@ -127,3 +134,41 @@ def issue_lease(
         expires_at=now + timedelta(seconds=ttl_seconds),
     )
     return lease.sign()
+
+
+class DelegationError(ValueError):
+    """The child lease would hold more than its parent."""
+
+
+def delegate(parent: Lease, *, child_principal: str, task: str, capabilities: list[Capability],
+             ttl_seconds: int | None = None, now: datetime | None = None) -> Lease:
+    """Issue a child lease for a sub-agent. Authority narrows at every hop:
+
+    - every child capability must be covered by some parent capability with the same tool and action
+    - the child cannot outlive the parent
+    - the child carries parent_lease_id and depth + 1, so the ledger shows the chain
+    """
+    now = now or datetime.now(timezone.utc)
+    if not parent.is_active(now):
+        raise DelegationError("parent lease is not active")
+    if not parent.verify():
+        raise DelegationError("parent lease signature invalid")
+    for cap in capabilities:
+        covering = [p for p in parent.find(cap.tool, cap.action) if cap.is_narrower_than(p)]
+        if not covering:
+            raise DelegationError(f"{cap.tool}.{cap.action} on {cap.resource} is wider than the parent lease")
+    remaining = int((parent.expires_at - now).total_seconds())
+    ttl = min(ttl_seconds or remaining, remaining)
+    child = Lease(
+        lease_id=f"sc_{secrets.token_hex(2)}",
+        principal=child_principal,
+        on_behalf_of=parent.on_behalf_of,
+        task=task,
+        capabilities=list(capabilities),
+        sensitive=list(parent.sensitive),
+        issued_at=now,
+        expires_at=now + timedelta(seconds=ttl),
+        parent_lease_id=parent.lease_id,
+        depth=parent.depth + 1,
+    )
+    return child.sign()

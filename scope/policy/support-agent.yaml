@@ -1,0 +1,14 @@
+principal: agent:support-agent
+org_domain: acme.com
+ttl_seconds: 600
+# A customer-facing support agent. It talks to one customer at a time and may only touch that customer's record.
+ceiling:
+  - {tool: chat,    action: read,          resource: "conversation:current"}
+  - {tool: chat,    action: reply,         resource: "conversation:current"}
+  - {tool: crm,     action: read_customer, resource: "customer:*"}
+  - {tool: refunds, action: issue,         resource: "order:*"}
+  - {tool: email,   action: send,          resource: "recipient:*@acme.com"}
+sensitive:
+  - {tool: refunds, action: issue}
+never:
+  - {tool: crm,     action: export}

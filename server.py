@@ -10,8 +10,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from agent.loop import BACKEND, SCENARIOS, Run, execute
+from agent.loop import BACKEND, SCENARIOS, Run, _issue_preview, execute
+from scope.audit import attest, to_jsonl
+from scope.lease import DelegationError, delegate
+from scope.model import Capability
 from tools.fixtures import DEFAULT_INJECTION
+from fastapi.responses import PlainTextResponse
 
 UI = Path(__file__).parent / "ui"
 RECORDINGS = Path(__file__).parent / "recordings"
@@ -142,6 +146,74 @@ async def approve(approval_id: str, body: Approval):
 @app.get("/api/runs/{run_id}/audit")
 async def audit(run_id: str):
     return JSONResponse(_run(run_id).audit())
+
+
+@app.get("/api/runs/{run_id}/audit.jsonl", response_class=PlainTextResponse)
+async def audit_jsonl(run_id: str):
+    """SIEM-friendly export: one ledger entry per line."""
+    return PlainTextResponse(to_jsonl(_run(run_id).ledger_entries), media_type="application/x-ndjson")
+
+
+@app.get("/api/runs/{run_id}/attestation")
+async def attestation(run_id: str):
+    run = _run(run_id)
+    return attest(run.audit(), run.lease.as_dict() if run.lease else None)
+
+
+class LeasePreview(BaseModel):
+    scenario_id: str | None = None
+    task: str | None = None
+    agent: str = "engineering-assistant"
+    plan: list[str] | None = None
+
+
+@app.post("/api/leases/preview")
+async def lease_preview(body: LeasePreview):
+    """What would this task get? Runs plan + planner + ceiling clamp and returns the lease without executing anything."""
+    if body.scenario_id and body.scenario_id in SCENARIOS:
+        sc = SCENARIOS[body.scenario_id]
+        task, agent = sc.task, sc.agent
+    elif body.task:
+        task, agent = body.task, body.agent
+    else:
+        raise HTTPException(400, "scenario_id or task required")
+    try:
+        return await _issue_preview(task=task, agent=agent, plan=body.plan, client=None if BACKEND == "cli" else client())
+    except FileNotFoundError:
+        raise HTTPException(404, f"no policy for identity {agent}")
+
+
+class Delegate(BaseModel):
+    child_principal: str
+    task: str
+    capabilities: list[dict]
+    ttl_seconds: int | None = None
+
+
+@app.post("/api/runs/{run_id}/delegate")
+async def delegate_lease(run_id: str, body: Delegate):
+    """Issue a child lease for a sub-agent. It must be a strict subset of this run's lease."""
+    run = _run(run_id)
+    if run.lease is None:
+        raise HTTPException(409, "no lease on this run yet")
+    try:
+        child = delegate(run.lease, child_principal=body.child_principal, task=body.task,
+                         capabilities=[Capability(**c) for c in body.capabilities], ttl_seconds=body.ttl_seconds)
+    except DelegationError as exc:
+        raise HTTPException(403, str(exc))
+    return child.as_dict()
+
+
+@app.get("/api/policies/{agent}")
+async def policy(agent: str):
+    from scope.policy import load_policy
+
+    try:
+        pol = load_policy(agent)
+    except FileNotFoundError:
+        raise HTTPException(404, "no policy for that identity")
+    return {"principal": pol.principal, "org_domain": pol.org_domain, "ttl_seconds": pol.ttl_seconds,
+            "ceiling": [c.as_dict() for c in pol.ceiling], "sensitive": sorted(pol.sensitive), "never": sorted(pol.never)}
 
 
 @app.get("/api/runs/{run_id}/replay")

@@ -27,8 +27,14 @@ from tools.fixtures import fresh_world
 from tools.registry import TOOLS
 
 RUN_DIR = Path(os.environ["SCOPE_RUN_DIR"])
-EVENTS = RUN_DIR / "events.jsonl"
-APPROVALS = RUN_DIR / "approvals"
+EVENTS = Path(os.environ.get("SCOPE_EVENTS_FILE") or RUN_DIR / "events.jsonl")      # a worker writes into its parent's stream
+APPROVALS = Path(os.environ.get("SCOPE_APPROVALS_DIR") or RUN_DIR / "approvals")   # and waits on its parent's approvals
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def emit(event: str, data: dict) -> None:
@@ -67,12 +73,41 @@ async def main() -> None:
     async def list_tools() -> list[t.Tool]:
         return [t.Tool(name=s.name, description=s.description, inputSchema=s.input_schema) for s in TOOLS.values()]
 
+    async def run_worker(world: dict, args: dict) -> dict:
+        """scope.delegate: issue a child lease (strict subset) and run a worker agent under it."""
+        from agent.cli_backend import cli_agent
+        from scope.lease import DelegationError, delegate
+        from scope.model import Capability
+
+        try:
+            caps = [Capability(str(c["tool"]), str(c["action"]), str(c["resource"])) for c in args.get("capabilities", [])]
+            child = delegate(broker.lease, child_principal=f"{broker.lease.principal}/worker", task=str(args["task"]), capabilities=caps, ttl_seconds=300)
+        except (DelegationError, KeyError, TypeError) as exc:
+            return {"error": f"delegation refused: {exc}", "summary": f"delegation refused: {exc}"}
+        child_dir = RUN_DIR / f"worker-{child.lease_id}"
+        child_dir.mkdir(exist_ok=True)
+        (child_dir / "lease.json").write_text(json.dumps(child.as_dict()))
+        emit("lease_delegated", {"lease_id": child.lease_id, "depth": child.depth, "parent_lease_id": broker.lease.lease_id, "lease": child.as_dict(),
+                                 "task": child.task, "principal": child.principal})
+        env = {k: v for k, v in os.environ.items() if k.startswith("SCOPE_")}
+        env.update({"SCOPE_RUN_DIR": str(child_dir), "SCOPE_EVENTS_FILE": str(EVENTS), "SCOPE_APPROVALS_DIR": str(APPROVALS)})
+        system = (f"You are {child.principal}, a worker agent at Acme acting for {child.on_behalf_of}. Do exactly the sub-task you were given, "
+                  "using only the tools you have, then reply with your report in plain sentences. If a call is denied, do not retry it.")
+        try:
+            text, _meta = await cli_agent(f"Sub-task: {child.task}\nUse only the scope tools.", system, child_dir, env, max_turns=10,
+                                          model=os.environ.get("SCOPE_WORKER_MODEL"))
+        except Exception as exc:  # the worker failing must not take the manager down
+            text = f"worker failed: {exc}"
+        emit("agent_message", {"lease_id": child.lease_id, "depth": child.depth, "text": text})
+        emit("lease_revoked", {"lease_id": child.lease_id, "depth": child.depth, "revoked_at": _now_iso(), "reason": "task_complete"})
+        return {"ok": True, "worker_lease": child.lease_id, "worker_report": text, "summary": f"worker {child.lease_id} finished"}
+
     @server.call_tool()
     async def call_tool(name: str, arguments: dict | None) -> list[t.TextContent]:
         spec = TOOLS.get(name)
         if spec is None:
             return [t.TextContent(type="text", text=f"unknown tool {name}")]
-        content, is_error = await broker.handle(spec, arguments or {})
+        content, is_error = await broker.handle(spec, arguments or {}, executor=run_worker if name == "scope_delegate" else None)
         return [t.TextContent(type="text", text=content)]
 
     emit("_mcp_ready", {"tools": len(TOOLS)})
