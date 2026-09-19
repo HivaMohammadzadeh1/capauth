@@ -1,0 +1,19 @@
+principal: agent:engineering-assistant
+org_domain: acme.com
+ttl_seconds: 600
+# The most this identity can ever hold. The planner can only narrow this.
+ceiling:
+  - {tool: slack,  action: search,        resource: "channel:*"}
+  - {tool: slack,  action: read_thread,   resource: "channel:*"}
+  - {tool: slack,  action: post_message,  resource: "channel:*"}
+  - {tool: github, action: create_issue,  resource: "repo:acme/*"}
+  - {tool: github, action: read_pr,       resource: "repo:acme/*"}
+  - {tool: drive,  action: list_files,    resource: "file:*"}
+  - {tool: drive,  action: read_file,     resource: "file:*"}
+  - {tool: email,  action: send,          resource: "recipient:*@acme.com"}
+# Always routed to a person, even when the lease covers them.
+sensitive:
+  - {tool: github, action: merge_pr}
+# Never issued and never approvable for this identity.
+never:
+  - {tool: github, action: delete_repo}

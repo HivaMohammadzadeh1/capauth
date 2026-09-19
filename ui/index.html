@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#0D131B; --surface:#141C27; --surface-2:#1B2531; --line:#26323F;
+  --ink:#E6EDF5; --muted:#8A9AAE;
+  --allow:#3ED2A6; --limited:#F2B44A; --approval:#A78BFA; --deny:#FF6B6B; --accent:#5AD1DB;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.5; min-height:100vh;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+h1,h2,h3,h4{margin:0}
+button{font-family:inherit}
+a{color:var(--accent)}
+
+/* top bar */
+.top{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
+  padding:11px 16px; border-bottom:1px solid var(--line);
+  background:var(--surface); position:sticky; top:0; z-index:20;
+}
+.brand{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:19px; letter-spacing:-0.02em; margin-right:2px}
+.brand .dot{color:var(--accent)}
+.kv{color:var(--muted); font-size:12.5px}
+.kv b{color:var(--ink); font-weight:500; font-family:"IBM Plex Mono",monospace; font-size:12px}
+.spacer{flex:1}
+select{
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:8px; padding:6px 9px; font-family:inherit; font-size:12.5px; max-width:210px;
+}
+.btn{
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+  border-radius:8px; padding:6px 11px; font-size:12.5px; cursor:pointer; white-space:nowrap;
+}
+.btn:hover{border-color:#3a4a5c}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn.primary{background:var(--accent); color:#062026; border-color:transparent; font-weight:600}
+.btn.primary:hover{filter:brightness(1.05)}
+
+/* scope switch */
+.switch{display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--muted); user-select:none}
+.switch input{position:absolute; opacity:0; pointer-events:none}
+.track{width:38px; height:22px; border-radius:999px; background:var(--line); position:relative; transition:background .15s}
+.track::after{content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#8A9AAE; transition:transform .15s, background .15s}
+.switch input:checked + .track{background:rgba(62,210,166,.35)}
+.switch input:checked + .track::after{transform:translateX(16px); background:var(--allow)}
+.switch b{color:var(--ink); font-weight:500; min-width:26px}
+
+.rec{
+  display:none; align-items:center; gap:7px; font-size:12px; color:var(--limited);
+  border:1px solid rgba(242,180,74,.4); background:rgba(242,180,74,.1);
+  padding:4px 10px; border-radius:999px;
+}
+.rec.on{display:inline-flex}
+.rec .blip{width:8px; height:8px; border-radius:50%; background:var(--limited); animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* layout */
+.body{
+  display:grid; grid-template-columns:minmax(320px,2fr) minmax(360px,3fr);
+  gap:0; max-width:1440px; margin:0 auto; min-height:calc(100vh - 55px);
+}
+@media (max-width:820px){.body{grid-template-columns:1fr}}
+.lease{padding:20px; border-right:1px solid var(--line)}
+@media (max-width:820px){.lease{border-right:0; border-bottom:1px solid var(--line)}}
+.ledger{padding:20px}
+.sec{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:0 0 10px}
+.lease .sec:not(:first-child){margin-top:22px}
+
+.task{font-size:15px; line-height:1.45}
+.plan{margin:0; padding-left:18px; color:var(--muted)}
+.plan li{margin:3px 0}
+
+/* lease card */
+.leasehead{display:flex; align-items:center; gap:16px; margin:6px 0 14px}
+.ring{width:72px; height:72px; flex:none}
+.ring text{font-family:"IBM Plex Mono",monospace; font-size:14px; fill:var(--ink)}
+.ring circle.arc{transition:stroke-dashoffset .5s linear, stroke .3s}
+.leasehead .meta{font-size:12.5px; color:var(--muted); line-height:1.55}
+.leasehead .meta b{color:var(--ink); font-weight:500; font-family:"IBM Plex Mono",monospace}
+.caps{display:grid; gap:8px}
+.cap{background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.cap .tool{font-weight:600; font-size:13px; margin-bottom:5px; text-transform:capitalize}
+.cap ul{list-style:none; margin:0; padding:0; font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.7}
+.cap li.y{color:var(--allow)}
+.cap li.n{color:var(--muted)}
+.cap li.s{color:var(--approval)}
+.cap li.y::before{content:"\2713  "}
+.cap li.n::before{content:"\2717  "}
+.cap li.s::before{content:"\2713  "}
+
+/* ledger rows */
+.row{display:grid; grid-template-columns:96px 1fr; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); animation:fade .25s ease}
+@keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+.dec{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500; letter-spacing:.02em;
+  padding:4px 0; text-align:center; border-radius:6px; height:fit-content;
+}
+.d-allow{background:rgba(62,210,166,.14); color:var(--allow)}
+.d-allow_limited{background:rgba(242,180,74,.16); color:var(--limited)}
+.d-human_approval{background:rgba(167,139,250,.18); color:var(--approval)}
+.d-deny{background:rgba(255,107,107,.16); color:var(--deny)}
+.call{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink); word-break:break-word}
+.why{color:var(--muted); font-size:12.5px; margin-top:3px}
+.why.deny{color:var(--deny)}
+.tag-narrow{color:var(--limited)}
+.prov{color:var(--muted); font-size:11.5px; margin-top:2px; font-style:italic}
+
+.inj{
+  border:1px solid rgba(255,107,107,.4); background:rgba(255,107,107,.07);
+  border-radius:9px; padding:10px 12px; margin:10px 0; animation:fade .25s ease;
+}
+.inj .h{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--deny); font-weight:600; margin-bottom:5px}
+.inj .h .src{color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0}
+.inj .txt{font-size:12.5px; color:var(--ink); line-height:1.5}
+
+.agentmsg{border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:10px 12px; margin:12px 0 0; font-size:13px; color:var(--ink)}
+.agentmsg .h{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:5px}
+
+.end{padding:11px 13px; margin-top:12px; border:1px dashed var(--line); border-radius:9px; color:var(--muted); font-size:12.5px}
+.empty{color:var(--muted); font-size:13px; padding:20px 0}
+
+/* approval card */
+.modal{border:1px solid var(--approval); background:var(--surface); border-radius:12px; padding:14px 16px; margin:0 0 14px; animation:fade .25s ease}
+.modal .tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--approval); margin-bottom:6px}
+.modal h5{margin:0 0 8px; font-size:15px; font-weight:600}
+.modal .kv2{font-size:12.5px; color:var(--muted); line-height:1.7}
+.modal .kv2 b{color:var(--ink); font-weight:500}
+.modal .acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.btn.approve{background:var(--approval); color:#150c33; border-color:transparent; font-weight:600}
+.btn.deny-btn{color:var(--deny); border-color:rgba(255,107,107,.4)}
+
+/* audit panel */
+.audit{max-height:0; overflow:hidden; transition:max-height .35s ease; border-top:1px solid var(--line)}
+.audit.open{max-height:2000px}
+.audit-inner{padding:18px 20px; max-width:1440px; margin:0 auto}
+.audit-head{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap}
+.audit-head h3{font-family:"Bricolage Grotesque",sans-serif; font-size:18px}
+.badge{font-size:12px; padding:4px 10px; border-radius:999px; font-family:"IBM Plex Mono",monospace}
+.badge.ok{background:rgba(62,210,166,.14); color:var(--allow); border:1px solid rgba(62,210,166,.4)}
+.badge.bad{background:rgba(255,107,107,.14); color:var(--deny); border:1px solid rgba(255,107,107,.4)}
+table{border-collapse:collapse; width:100%; font-size:12.5px; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-weight:600; background:var(--surface-2); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td .mono{font-size:11.5px}
+.hash{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="brand">Scope<span class="dot">.</span></span>
+  <span class="kv">agent <b id="agentId">-</b></span>
+  <span class="kv">for <b id="obo">-</b></span>
+  <span class="kv">lease <b id="leaseId">-</b></span>
+  <span class="spacer"></span>
+  <span class="rec" id="recBadge"><span class="blip"></span>recording</span>
+  <select id="scenario" aria-label="scenario"></select>
+  <label class="switch" title="turn Scope enforcement on or off">
+    <input type="checkbox" id="scopeToggle" checked>
+    <span class="track"></span>
+    <b id="scopeLabel">on</b>
+  </label>
+  <button class="btn primary" id="runBtn">Run task</button>
+  <button class="btn" id="replayBtn" disabled>Replay recording</button>
+  <button class="btn" id="exportBtn" disabled>Export audit</button>
+</header>
+
+<div class="body">
+  <section class="lease">
+    <h4 class="sec">Task</h4>
+    <div class="task" id="task">Pick a scenario and press Run task.</div>
+
+    <h4 class="sec">Agent plan</h4>
+    <ol class="plan" id="plan"><li class="empty" style="list-style:none;margin-left:-18px">no plan yet</li></ol>
+
+    <h4 class="sec">Temporary capabilities</h4>
+    <div class="leasehead">
+      <svg class="ring" id="ring" viewBox="0 0 72 72" role="img" aria-label="lease time remaining">
+        <circle cx="36" cy="36" r="27" fill="none" stroke="#26323F" stroke-width="6"></circle>
+        <circle class="arc" id="arc" cx="36" cy="36" r="27" fill="none" stroke="#5AD1DB" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"
+                transform="rotate(-90 36 36)"></circle>
+        <text id="ringText" x="36" y="40" text-anchor="middle">--:--</text>
+      </svg>
+      <div class="meta" id="leaseMeta">
+        issued <b>--:--:--</b><br>expires <b>--:--:--</b><br>ceiling <b>policy/*.yaml</b>
+      </div>
+    </div>
+    <div class="caps" id="caps"><div class="empty">no lease yet</div></div>
+  </section>
+
+  <section class="ledger">
+    <h4 class="sec">Live actions</h4>
+    <div id="approvalHost"></div>
+    <div id="ledger"><div class="empty">Run a task to see decisions land here.</div></div>
+  </section>
+</div>
+
+<div class="audit" id="audit">
+  <div class="audit-inner">
+    <div class="audit-head">
+      <h3>Audit ledger</h3>
+      <span class="badge" id="chainBadge">-</span>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="downloadBtn">Download JSON</button>
+      <button class="btn" id="closeAudit">Close</button>
+    </div>
+    <div style="overflow-x:auto"><table id="auditTable"></table></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// one state object keyed by run_id; only one run is shown at a time
+const STATE = {};
+let current = null;      // active run state
+let es = null;           // EventSource
+let ringTimer = null;
+
+const $ = (id) => document.getElementById(id);
+const DEC_LABEL = {ALLOW:"ALLOW", ALLOW_LIMITED:"LIMITED", HUMAN_APPROVAL:"APPROVAL", DENY:"DENY"};
+const C = 2 * Math.PI * 27; // ring circumference
+
+function hms(iso){
+  if(!iso) return "--:--:--";
+  try{ return new Date(iso).toLocaleTimeString("en-GB", {hour12:false}); }catch(e){ return "--:--:--"; }
+}
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function humanRes(r){
+  if(!r) return "";
+  let s = String(r);
+  const i = s.indexOf(":");
+  if(i >= 0) s = s.slice(i + 1);
+  return s.replace(/\/\*$/, "");
+}
+
+// ---- scenarios ----
+async function loadScenarios(){
+  try{
+    const res = await fetch("/api/scenarios");
+    const list = await res.json();
+    const sel = $("scenario");
+    sel.innerHTML = "";
+    list.forEach((s, i) => {
+      const o = document.createElement("option");
+      o.value = s.id;
+      o.textContent = (i + 1) + " · " + s.title;
+      o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of;
+      sel.appendChild(o);
+    });
+    syncScenarioHint();
+  }catch(e){ console.error("scenarios failed", e); }
+}
+function syncScenarioHint(){
+  const o = $("scenario").selectedOptions[0];
+  if(!o) return;
+  if(!current){
+    $("task").textContent = o.dataset.task;
+    $("agentId").textContent = o.dataset.agent;
+    $("obo").textContent = o.dataset.obo;
+  }
+}
+
+// ---- run ----
+async function runTask(){
+  stopEverything();
+  const scenario_id = $("scenario").value;
+  const scope_enabled = $("scopeToggle").checked;
+  let run_id;
+  try{
+    const res = await fetch("/api/runs", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({scenario_id, scope_enabled})
+    });
+    const j = await res.json();
+    run_id = j.run_id;
+  }catch(e){ alert("could not start run"); return; }
+
+  current = freshRun(run_id, "live");
+  STATE[run_id] = current;
+  resetView();
+  $("exportBtn").disabled = true;
+  $("replayBtn").disabled = true;
+
+  es = new EventSource("/api/runs/" + run_id + "/events");
+  ["run_started","plan","lease_issued","tool_call","decision","approval_requested",
+   "approval_resolved","tool_result","injection_seen","agent_message","lease_revoked",
+   "run_finished","error"].forEach((t) => {
+    es.addEventListener(t, (ev) => handle(t, JSON.parse(ev.data)));
+  });
+  es.onerror = () => {}; // stream closes after run_finished; nothing to do
+}
+
+function freshRun(run_id, mode){
+  return {run_id, mode, leaseId:null, ttl:600, revoked:false, rows:new Map(), finished:false};
+}
+
+function stopEverything(){
+  if(es){ es.close(); es = null; }
+  if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
+}
+
+function resetView(){
+  $("ledger").innerHTML = "";
+  $("approvalHost").innerHTML = "";
+  $("plan").innerHTML = "";
+  $("caps").innerHTML = '<div class="empty">issuing lease...</div>';
+  $("audit").classList.remove("open");
+  setArc(1, false);
+  $("ringText").textContent = "--:--";
+}
+
+// ---- event handling (shared by live + replay) ----
+function handle(type, d){
+  switch(type){
+    case "run_started": onRunStarted(d); break;
+    case "plan": onPlan(d); break;
+    case "lease_issued": onLease(d); break;
+    case "decision": onDecision(d); break;
+    case "approval_requested": onApprovalRequested(d); break;
+    case "approval_resolved": onApprovalResolved(d); break;
+    case "injection_seen": onInjection(d); break;
+    case "agent_message": onAgentMessage(d); break;
+    case "lease_revoked": onRevoked(d); break;
+    case "run_finished": onFinished(d); break;
+    case "error": onError(d); break;
+    // tool_call, tool_result: ancillary, no row of their own
+  }
+}
+
+function onRunStarted(d){
+  $("agentId").textContent = d.agent || "-";
+  $("obo").textContent = d.on_behalf_of || "-";
+  $("task").textContent = d.task || "";
+  if($("ledger").childElementCount === 0){
+    $("ledger").innerHTML = '<div class="empty">agent is planning...</div>';
+  }
+}
+
+function onPlan(d){
+  const ol = $("plan"); ol.innerHTML = "";
+  (d.steps || []).forEach((s) => {
+    const li = document.createElement("li");
+    li.textContent = s; ol.appendChild(li);
+  });
+}
+
+function onLease(d){
+  const lease = d.lease || {};
+  current.leaseId = lease.lease_id;
+  current.ttl = lease.ttl_seconds || 600;
+  $("leaseId").textContent = lease.lease_id || "-";
+  $("leaseMeta").innerHTML =
+    "issued <b>" + hms(lease.issued_at) + "</b><br>expires <b>" + hms(lease.expires_at) +
+    "</b><br>ceiling <b>policy/" + esc((lease.principal || "agent").split(":").pop()) + ".yaml</b>";
+  renderCaps(lease, d.excluded || []);
+  startRing(current.ttl);
+}
+
+function renderCaps(lease, excluded){
+  const groups = {}; // tool -> {y:[], n:[], s:[]}
+  const order = [];
+  const get = (t) => {
+    if(!groups[t]){ groups[t] = {y:[], n:[], s:[]}; order.push(t); }
+    return groups[t];
+  };
+  const sensitive = new Set((lease.sensitive || []).map((s) => s.tool + "." + s.action));
+  (lease.capabilities || []).forEach((c) => {
+    const label = c.action.replace(/_/g, " ") + " " + humanRes(c.resource);
+    const g = get(c.tool);
+    if(sensitive.has(c.tool + "." + c.action)) g.s.push(label + " · needs approval");
+    else g.y.push(label);
+  });
+  excluded.forEach((e) => {
+    get(e.tool).n.push(e.label || (e.action.replace(/_/g, " ") + " " + humanRes(e.resource)));
+  });
+  const host = $("caps"); host.innerHTML = "";
+  order.forEach((t) => {
+    const g = groups[t];
+    const div = document.createElement("div"); div.className = "cap";
+    let ul = '<div class="tool">' + esc(t) + '</div><ul>';
+    g.y.forEach((x) => ul += '<li class="y">' + esc(x) + "</li>");
+    g.s.forEach((x) => ul += '<li class="s">' + esc(x) + "</li>");
+    g.n.forEach((x) => ul += '<li class="n">' + esc(x) + "</li>");
+    ul += "</ul>";
+    div.innerHTML = ul; host.appendChild(div);
+  });
+}
+
+function onDecision(d){
+  const led = $("ledger");
+  const first = led.querySelector(".empty");
+  if(first) first.remove();
+  const cls = "d-" + String(d.decision).toLowerCase();
+  let inner = '<span class="dec ' + cls + '">' + (DEC_LABEL[d.decision] || d.decision) + "</span><div>";
+  inner += '<div class="call">' + esc(d.call_str) + "</div>";
+  const denyCls = d.decision === "DENY" ? " deny" : "";
+  let why = esc(d.reason || "");
+  if(d.decision === "ALLOW_LIMITED" && d.narrowed_to){
+    why += ' <span class="tag-narrow">→ narrowed to ' + esc(d.narrowed_to) + "</span>";
+  }
+  inner += '<div class="why' + denyCls + '">' + why + "</div>";
+  if(d.provenance) inner += '<div class="prov">' + esc(d.provenance) + "</div>";
+  inner += "</div>";
+
+  let row = current.rows.get(d.seq);
+  if(row){ row.innerHTML = inner; }         // upsert: approval row becomes ALLOW/DENY
+  else{
+    row = document.createElement("div"); row.className = "row";
+    row.innerHTML = inner; current.rows.set(d.seq, row); led.appendChild(row);
+  }
+  row.scrollIntoView({block:"nearest"});
+}
+
+function onInjection(d){
+  const led = $("ledger");
+  const first = led.querySelector(".empty"); if(first) first.remove();
+  const div = document.createElement("div"); div.className = "inj";
+  div.innerHTML = '<div class="h">injection seen <span class="src">from ' + esc(d.source) +
+    "</span></div><div class=\"txt\">" + esc(d.text) + "</div>";
+  led.appendChild(div);
+  div.scrollIntoView({block:"nearest"});
+}
+
+function onApprovalRequested(d){
+  const host = $("approvalHost");
+  const details = d.details || {};
+  let kv = 'derived from task <b>' + esc(d.derived_from_task) + "</b><br>reason <b>" + esc(d.reason) + "</b>";
+  Object.keys(details).forEach((k) => { kv += "<br>" + esc(k) + " <b>" + esc(details[k]) + "</b>"; });
+  const card = document.createElement("div"); card.className = "modal"; card.dataset.aid = d.approval_id;
+  card.innerHTML =
+    '<div class="tag">HUMAN_APPROVAL</div>' +
+    "<h5>" + esc(d.call_str) + "</h5>" +
+    '<div class="kv2">' + kv + "</div>" +
+    '<div class="acts">' +
+      '<button class="btn approve" data-o="approved_once">Approve once</button>' +
+      '<button class="btn approve" data-o="approved_for_task">Approve for this task</button>' +
+      '<button class="btn deny-btn" data-o="denied">Deny</button>' +
+    "</div>";
+  card.querySelectorAll("button").forEach((b) => {
+    b.addEventListener("click", () => sendApproval(d.approval_id, b.dataset.o, card));
+  });
+  host.appendChild(card);
+  card.scrollIntoView({block:"nearest"});
+}
+
+async function sendApproval(approval_id, outcome, card){
+  card.querySelectorAll("button").forEach((b) => b.disabled = true);
+  try{
+    await fetch("/api/approvals/" + approval_id, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({outcome})
+    });
+  }catch(e){ console.error("approval failed", e); }
+}
+
+function onApprovalResolved(d){
+  const card = $("approvalHost").querySelector('.modal[data-aid="' + d.approval_id + '"]');
+  if(card) card.remove();
+}
+
+function onAgentMessage(d){
+  const led = $("ledger");
+  const div = document.createElement("div"); div.className = "agentmsg";
+  div.innerHTML = '<div class="h">agent report</div>' + esc(d.text);
+  led.appendChild(div); div.scrollIntoView({block:"nearest"});
+}
+
+function onRevoked(d){
+  current.revoked = true;
+  if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
+  greyRing();
+}
+
+function onFinished(d){
+  current.finished = true;
+  if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
+  greyRing();
+  const led = $("ledger");
+  const early = d.early_by_seconds || 0;
+  const mm = Math.floor(early / 60), ss = early % 60;
+  const earlyStr = early >= 60 ? (mm + " min " + ss + " s") : (early + " s");
+  const div = document.createElement("div"); div.className = "end";
+  div.textContent = "Task complete. Lease " + (current.leaseId || "") +
+    " revoked at " + hms(d.finished_at) + ", " + earlyStr + " early. " +
+    (d.decisions || 0) + " decisions, chain " + (d.chain_ok ? "intact" : "broken") + ".";
+  led.appendChild(div); div.scrollIntoView({block:"nearest"});
+  $("exportBtn").disabled = false;
+  $("replayBtn").disabled = false;
+  if(es){ es.close(); es = null; }
+}
+
+function onError(d){
+  const led = $("ledger");
+  const div = document.createElement("div"); div.className = "inj";
+  div.innerHTML = '<div class="h">error</div><div class="txt">' + esc(d.message) + "</div>";
+  led.appendChild(div);
+}
+
+// ---- ring ----
+function setArc(frac, active){
+  frac = Math.max(0, Math.min(1, frac));
+  $("arc").setAttribute("stroke-dashoffset", (C * (1 - frac)).toFixed(1));
+  $("arc").setAttribute("stroke", active ? "var(--accent)" : "#3A4859");
+}
+function greyRing(){
+  $("arc").setAttribute("stroke", "#3A4859");
+  $("ringText").textContent = "revoked";
+  $("ringText").setAttribute("fill", "#8A9AAE");
+}
+function startRing(ttl){
+  const start = Date.now();
+  const total = ttl * 1000;
+  $("ringText").setAttribute("fill", "var(--ink)");
+  const tick = () => {
+    if(current.revoked || current.finished) return;
+    const elapsed = Date.now() - start;
+    const remaining = Math.max(0, total - elapsed);
+    const frac = remaining / total;
+    setArc(frac, true);
+    const secs = Math.round(remaining / 1000);
+    const m = Math.floor(secs / 60), s = secs % 60;
+    $("ringText").textContent = m + ":" + String(s).padStart(2, "0");
+    if(remaining <= 0 && ringTimer){ clearInterval(ringTimer); ringTimer = null; }
+  };
+  if(ringTimer) clearInterval(ringTimer);
+  tick();
+  ringTimer = setInterval(tick, 250);
+}
+
+// ---- audit export ----
+async function exportAudit(){
+  if(!current) return;
+  try{
+    const res = await fetch("/api/runs/" + current.run_id + "/audit");
+    const a = await res.json();
+    renderAudit(a);
+    $("audit").classList.add("open");
+    $("audit").scrollIntoView({behavior:"smooth", block:"start"});
+  }catch(e){ console.error("audit failed", e); }
+}
+function renderAudit(a){
+  const badge = $("chainBadge");
+  badge.className = "badge " + (a.chain_ok ? "ok" : "bad");
+  badge.textContent = a.chain_ok ? "chain intact" : "chain broken";
+  const t = $("auditTable");
+  let html = "<tr><th>seq</th><th>call</th><th>decision</th><th>reason</th><th>approval</th><th class='mono'>prev → hash</th></tr>";
+  (a.entries || []).forEach((e) => {
+    const call = e.call || {};
+    const callStr = call.tool + "." + call.action + "(" + humanRes(call.resource) + ")";
+    const appr = e.approval ? (e.approval.outcome + " by " + e.approval.by) : "—";
+    html += "<tr><td class='mono'>" + e.seq + "</td>" +
+      "<td class='mono'>" + esc(callStr) + "</td>" +
+      "<td class='mono'>" + esc(e.decision) + (e.narrowed_to ? " → " + esc(e.narrowed_to) : "") + "</td>" +
+      "<td>" + esc(e.reason) + "</td>" +
+      "<td>" + esc(appr) + "</td>" +
+      "<td class='mono hash'>" + esc(e.prev_hash) + " → " + esc(e.hash) + "</td></tr>";
+  });
+  t.innerHTML = html;
+}
+
+// ---- replay ----
+async function replayRun(){
+  if(!current) return;
+  const run_id = current.run_id;
+  let events;
+  try{
+    const res = await fetch("/api/runs/" + run_id + "/replay");
+    events = await res.json();
+  }catch(e){ console.error("replay failed", e); return; }
+
+  stopEverything();
+  current = freshRun(run_id, "replay");
+  STATE[run_id] = current;
+  resetView();
+  $("recBadge").classList.add("on");
+  $("exportBtn").disabled = true;
+
+  let i = 0;
+  const feed = () => {
+    if(i >= events.length){
+      $("recBadge").classList.remove("on");
+      $("exportBtn").disabled = false;
+      return;
+    }
+    const ev = events[i++];
+    // replay auto-resolves approvals from the recording; no operator input
+    handle(ev.event, ev.data);
+    setTimeout(feed, 400);
+  };
+  feed();
+}
+
+// ---- wiring ----
+$("runBtn").addEventListener("click", runTask);
+$("exportBtn").addEventListener("click", exportAudit);
+$("replayBtn").addEventListener("click", replayRun);
+$("downloadBtn").addEventListener("click", () => {
+  if(current) window.open("/api/runs/" + current.run_id + "/audit", "_blank");
+});
+$("closeAudit").addEventListener("click", () => $("audit").classList.remove("open"));
+$("scenario").addEventListener("change", () => { if(!current || current.finished) { current = null; syncScenarioHint(); } });
+$("scopeToggle").addEventListener("change", (e) => { $("scopeLabel").textContent = e.target.checked ? "on" : "off"; });
+
+loadScenarios();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'demo/before-after.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.12.101
+  Duration: 00:00:12.53, start: 0.000000, bitrate: 763 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 1440x900 [SAR 1:1 DAR 8:5], 760 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc62.28.101 libx264
+Stream mapping:
+  Stream #0:0 (h264) -> fps:default
+  paletteuse:default -> Stream #0:0 (gif)
+Press [q] to stop, [?] for help
+[fc#0 @ 0xa5b01c000] Reconfiguring filter graph because video parameters changed to yuv420p(tv, bt470bg), 1440x900, unspecified alph
+[Parsed_palettegen_3 @ 0xa584aab80] 255(+1) colors generated out of 66095 colors; ratio=0.003858
+[Parsed_palettegen_3 @ 0xa584aab80] Duped color: FF717A82
+Output #0, gif, to 'demo/check.gif':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.12.101
+  Stream #0:0: Video: gif, pal8(pc, gbr/unknown/unknown, progressive), 720x450 [SAR 1:1 DAR 8:5], q=2-31, 200 kb/s, 12 fps, 100 tbn
+    Metadata:
+      encoder         : Lavc62.28.101 gif
+frame=  107 fps=0.0 q=-0.0 size=    2560KiB time=00:00:11.83 bitrate=1772.2kbits/s speed=23.6x elapsed=0:00:00.50    [out#0/gif @ 0xa5ac14300] video:3010KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.000649%
+frame=  115 fps=0.0 q=-0.0 Lsize=    3010KiB time=00:00:12.50 bitrate=1972.5kbits/s speed=23.2x elapsed=0:00:00.53    
