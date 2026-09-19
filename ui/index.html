@@ -529,15 +529,19 @@ function pipeDot(decision){
 }
 function shortCall(d){
   if(d.tool === "scope" && d.action === "delegate"){
-    const caps = (d.args && d.args.capabilities || []).length;
-    return "scope.delegate(" + caps + (caps === 1 ? " capability" : " capabilities") + ", task: " + String(d.args && d.args.task || "").slice(0, 70) + (String(d.args && d.args.task || "").length > 70 ? "..." : "") + ")";
+    const a = CALL_ARGS[(d.lease_id || "") + ":" + d.seq] || {};
+    const caps = (a.capabilities || []).length;
+    const task = String(a.task || "");
+    return "scope.delegate(" + caps + (caps === 1 ? " capability" : " capabilities") + ", task: \"" + task.slice(0, 70) + (task.length > 70 ? "..." : "") + "\")";
   }
   const s = String(d.call_str || "");
   return s.length > 150 ? s.slice(0, 147) + "...)" : s;
 }
 
 // ---- event handling (shared by live + replay) ----
+const CALL_ARGS = {};
 function handle(type, d){
+  if(type === "tool_call") CALL_ARGS[(d.lease_id || "") + ":" + d.seq] = d.args || {};
   switch(type){
     case "run_started": onRunStarted(d); break;
     case "plan": onPlan(d); break;
