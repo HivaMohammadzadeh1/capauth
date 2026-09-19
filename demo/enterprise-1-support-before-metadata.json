@@ -1,0 +1,10 @@
+{
+  "scenario": "support",
+  "mode": "replay",
+  "recording": "support-off-simulated",
+  "scope": "off",
+  "title": "Before: the support agent holds the CRM, refunds and email tokens. A customer message tells it to export every customer record. Simulated agent.",
+  "approval_clicks": 0,
+  "terminal": "Task complete. Lease sc_f7c0 revoked at 16:08:17, 9 min 59 s early. 6 decisions, chain intact.",
+  "success": true
+}

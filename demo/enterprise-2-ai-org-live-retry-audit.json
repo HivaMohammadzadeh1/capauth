@@ -1,0 +1,120 @@
+{
+  "lease_id": "sc_a1c5",
+  "chain_ok": true,
+  "chains": {
+    "sc_a1c5": true
+  },
+  "leases": [
+    {
+      "lease_id": "sc_a1c5",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "capabilities": [
+        {
+          "tool": "scope",
+          "action": "delegate",
+          "resource": "worker:*"
+        },
+        {
+          "tool": "slack",
+          "action": "read_thread",
+          "resource": "channel:#payments/thread:18291"
+        },
+        {
+          "tool": "github",
+          "action": "create_issue",
+          "resource": "repo:acme/payments-api"
+        }
+      ],
+      "sensitive": [],
+      "issued_at": "2026-09-19T23:13:04Z",
+      "expires_at": "2026-09-19T23:28:04Z",
+      "ttl_seconds": 900,
+      "sig": "hmac-sha256:fed1a58d4184f2d51e636f1edb8b85165ec34501c7358900429ce516c1b7c05a",
+      "revoked_at": "2026-09-19T23:13:18Z",
+      "parent_lease_id": null,
+      "depth": 0
+    }
+  ],
+  "entries": [
+    {
+      "seq": 1,
+      "at": "2026-09-19T23:13:07Z",
+      "lease_id": "sc_a1c5",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "call": {
+        "tool": "scope",
+        "action": "delegate",
+        "resource": "worker:*",
+        "args": {
+          "task": "Read Slack thread 18291 in #payments about the payments double-charge bug and return ONLY a three-sentence summary: sentence 1 what broke, sentence 2 customer impact, sentence 3 current status and root cause. No preamble, no bullet points.",
+          "capabilities": [
+            {
+              "tool": "slack.read_thread",
+              "action": "read",
+              "resource": "channel:#payments/thread:18291"
+            }
+          ]
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: scope.delegate on worker:*",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "ee34ca3e895a0987d533bc4bc2589d468d8d3cc326e1e4a1e29da70cb42ec103"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-19T23:13:10Z",
+      "lease_id": "sc_a1c5",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "call": {
+        "tool": "slack",
+        "action": "read_thread",
+        "resource": "channel:#payments/thread:18291",
+        "args": {
+          "thread_ts": "18291"
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: slack.read_thread on channel:#payments/thread:18291",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "ee34ca3e895a0987d533bc4bc2589d468d8d3cc326e1e4a1e29da70cb42ec103",
+      "hash": "4eaa1938ce0174121d28c5d45b8f837f917b4887413e445d457b85c67ac436a6"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-19T23:13:13Z",
+      "lease_id": "sc_a1c5",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "call": {
+        "tool": "github",
+        "action": "create_issue",
+        "resource": "repo:acme/payments-api",
+        "args": {
+          "repo": "acme/payments-api",
+          "title": "Incident summary: double charge on retry",
+          "body": "Retry logic in retry.py did not carry the idempotency key across the second capture attempt, so a retried payment was processed as a new charge. Roughly 40 orders per day were affected, with customers being double-charged on retried transactions. The root cause is confirmed and reproduced in staging; the fix is to persist the idempotency key before the first capture, and it is up for review in PR #481."
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: github.create_issue on repo:acme/payments-api",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "4eaa1938ce0174121d28c5d45b8f837f917b4887413e445d457b85c67ac436a6",
+      "hash": "1e0bf5f8ecd04cb677f7c37b62266406942815725cfc19ea391003e86d518c5a"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "enterprise-1-support.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1440,
+        "height": 900
+      }
+    ],
+    "format": {
+      "duration": "39.500000",
+      "size": "1819240"
+    }
+  },
+  "enterprise-1-support.gif": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "gif",
+        "width": 720,
+        "height": 450
+      }
+    ],
+    "format": {
+      "duration": "39.500000",
+      "size": "33703724"
+    }
+  },
+  "enterprise-2-ai-org.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1440,
+        "height": 900
+      }
+    ],
+    "format": {
+      "duration": "24.200000",
+      "size": "1186061"
+    }
+  },
+  "enterprise-2-ai-org.gif": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "gif",
+        "width": 720,
+        "height": 450
+      }
+    ],
+    "format": {
+      "duration": "24.160000",
+      "size": "20863144"
+    }
+  }
+}

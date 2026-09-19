@@ -1,0 +1,8 @@
+{
+  "scenario": null,
+  "mode": "live",
+  "recording": null,
+  "scope": "on",
+  "title": "Without Scope, a worker agent inherits everything its manager holds.",
+  "approval_clicks": 0
+}

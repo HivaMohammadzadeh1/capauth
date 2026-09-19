@@ -1,0 +1,142 @@
+{
+  "lease_id": "sc_ee3b",
+  "chain_ok": true,
+  "chains": {
+    "sc_ee3b": true,
+    "sc_8674": true
+  },
+  "leases": [
+    {
+      "lease_id": "sc_ee3b",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "capabilities": [
+        {
+          "tool": "scope",
+          "action": "delegate",
+          "resource": "worker:*"
+        },
+        {
+          "tool": "slack",
+          "action": "read_thread",
+          "resource": "channel:#payments/thread:18291"
+        },
+        {
+          "tool": "github",
+          "action": "create_issue",
+          "resource": "repo:acme/payments-api"
+        }
+      ],
+      "sensitive": [],
+      "issued_at": "2026-09-19T23:16:23Z",
+      "expires_at": "2026-09-19T23:31:23Z",
+      "ttl_seconds": 900,
+      "sig": "hmac-sha256:69fc560035830bea495d764657a9cdab6b7a3c77b7cd1c20a1ef18aaebd670d9",
+      "revoked_at": "2026-09-19T23:16:43Z",
+      "parent_lease_id": null,
+      "depth": 0
+    },
+    {
+      "lease_id": "sc_8674",
+      "principal": "agent:ai-manager/worker",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Read Slack thread 18291 in #payments about the payments double-charge bug and return exactly a three-sentence summary covering what happened, the technical cause, and the current status/impact. Return only those three sentences.",
+      "capabilities": [
+        {
+          "tool": "slack",
+          "action": "read_thread",
+          "resource": "channel:#payments/thread:18291"
+        }
+      ],
+      "sensitive": [],
+      "issued_at": "2026-09-19T23:16:27Z",
+      "expires_at": "2026-09-19T23:21:27Z",
+      "ttl_seconds": 300,
+      "sig": "hmac-sha256:c7b86ecc5b6c7cbba3402e250596ec4992e7f9a3332c53cd77fe3b5181fc6ec7",
+      "revoked_at": null,
+      "parent_lease_id": "sc_ee3b",
+      "depth": 1
+    }
+  ],
+  "entries": [
+    {
+      "seq": 1,
+      "at": "2026-09-19T23:16:26Z",
+      "lease_id": "sc_ee3b",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "call": {
+        "tool": "scope",
+        "action": "delegate",
+        "resource": "worker:*",
+        "args": {
+          "task": "Read Slack thread 18291 in #payments about the payments double-charge bug and return exactly a three-sentence summary covering what happened, the technical cause, and the current status/impact. Return only those three sentences.",
+          "capabilities": [
+            {
+              "tool": "slack",
+              "action": "read_thread",
+              "resource": "channel:#payments/thread:18291"
+            }
+          ]
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: scope.delegate on worker:*",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "9da7b2e356a77fe3eacb00f9e8a34d080390a78e249b46ef88b6d28b3524d86a"
+    },
+    {
+      "seq": 1,
+      "at": "2026-09-19T23:16:32Z",
+      "lease_id": "sc_8674",
+      "principal": "agent:ai-manager/worker",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Read Slack thread 18291 in #payments about the payments double-charge bug and return exactly a three-sentence summary covering what happened, the technical cause, and the current status/impact. Return only those three sentences.",
+      "call": {
+        "tool": "slack",
+        "action": "read_thread",
+        "resource": "channel:#payments/thread:18291",
+        "args": {
+          "thread_ts": "18291"
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: slack.read_thread on channel:#payments/thread:18291",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "7c95562b0d2d95db5cfdc5d1f4dd47bdc24a8a764bbd5c834f4680b414cc54b3"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-19T23:16:39Z",
+      "lease_id": "sc_ee3b",
+      "principal": "agent:ai-manager",
+      "on_behalf_of": "user:hiva@acme.com",
+      "task": "Prepare the incident summary for the payments double-charge bug. Delegate the reading of Slack thread 18291 in #payments to a worker agent, giving it only what it needs, and have it return a three-sentence summary. Then file an issue in acme/payments-api titled 'Incident summary: double charge on retry' with that summary.",
+      "call": {
+        "tool": "github",
+        "action": "create_issue",
+        "resource": "repo:acme/payments-api",
+        "args": {
+          "repo": "acme/payments-api",
+          "title": "Incident summary: double charge on retry",
+          "body": "Customers on the payments flow were being double-charged, affecting roughly 40 orders per day. The technical cause is that `retry.py` does not carry the idempotency key across the second capture attempt, so the retry is processed as a separate charge. The fix \u2014 persisting the key before the first capture \u2014 is confirmed in staging and sits in PR #481, which is not yet merged, so the impact is ongoing in production."
+        }
+      },
+      "decision": "ALLOW",
+      "reason": "inside lease: github.create_issue on repo:acme/payments-api",
+      "narrowed_to": null,
+      "provenance": null,
+      "approval": null,
+      "prev_hash": "9da7b2e356a77fe3eacb00f9e8a34d080390a78e249b46ef88b6d28b3524d86a",
+      "hash": "182417756541f22079dfca13fba0944aafecf78b7f32f50ee0258fde2a5079f4"
+    }
+  ]
+}

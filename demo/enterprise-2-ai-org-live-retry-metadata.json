@@ -1,0 +1,12 @@
+{
+  "scenario": "ai-org",
+  "mode": "live",
+  "recording": null,
+  "scope": "on",
+  "title": "With Scope, the manager hands the worker one capability for five minutes, and both leases share one audit trail. Live run, Claude Code.",
+  "approval_clicks": 0,
+  "run_id": "run_61a43f",
+  "terminal": "Task complete. Lease sc_a1c5 revoked at 16:13:18, 14 min 45 s early. 3 decisions, chain intact.",
+  "audit_http_status": 200,
+  "success": true
+}

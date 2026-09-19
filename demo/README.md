@@ -62,3 +62,17 @@ bash demo/stitch.sh --out enterprise-2-ai-org enterprise-2-ai-org-title.png:3 en
 ```
 
 After the backend produces a valid worker lease, use the live WebM directly after the Part B title and omit the fallback card. Inspect the live audit for a child lease with a 300-second TTL and the intended single capability before publishing that replacement.
+
+## Video 2: an AI organization, a manager agent delegates to a worker (`enterprise-2-ai-org.mp4`)
+
+Title cards, then a live Claude Code run of scenario `ai-org` with Scope on, recorded from the console.
+The manager's lease holds three things: delegate, read one Slack thread, file one issue. It calls
+`scope.delegate` with exactly one capability for the worker. Scope issues worker lease `sc_8674` as a
+strict subset (slack.read_thread on one thread, five minutes), the worker runs as its own Claude Code
+process, reads the thread, reports back, and the manager files the issue. Three decisions land on two
+hash chains linked by parent id. Nothing in this video is simulated. Rebuild with:
+
+```
+uv run python demo/record.py --scenario ai-org --mode live --scope on --out enterprise-2-ai-org-live --title '...' --record-only
+bash demo/stitch.sh --out enterprise-2-ai-org enterprise-2-ai-org-title.png:3 enterprise-2-ai-org-before-title.png:4 enterprise-2-ai-org-live-title.png:3 enterprise-2-ai-org-live.webm
+```

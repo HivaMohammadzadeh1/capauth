@@ -1,0 +1,10 @@
+{
+  "scenario": "ai-org",
+  "mode": "replay",
+  "recording": "ai-org-on",
+  "scope": "on",
+  "title": "Replay fallback: the live attempt could not delegate. This is the recorded ai-org-on run.",
+  "approval_clicks": 0,
+  "terminal": "Task complete. Lease sc_1f8d revoked at 16:11:40, 14 min 46 s early. 3 decisions, chain intact.",
+  "success": true
+}

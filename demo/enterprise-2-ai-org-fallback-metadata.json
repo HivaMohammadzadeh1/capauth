@@ -1,0 +1,8 @@
+{
+  "scenario": null,
+  "mode": "live",
+  "recording": null,
+  "scope": "on",
+  "title": "Replay fallback: delegation failed in the live attempt and in ai-org-on. No worker lease was issued.",
+  "approval_clicks": 0
+}
