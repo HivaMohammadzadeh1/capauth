@@ -89,28 +89,28 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <div>
     <div class="kicker">Capability authorization for AI agents</div>
     <h1>A lease for one task, not a token for everything.</h1>
-    <p class="lede">An agent today runs with its user's full access to Slack, GitHub, Drive, and email. The task in front of it needs three things. CapAuth gives the agent only those three, for one task, checks every tool call against that lease in code, and writes a log a security review can verify.</p>
+    <p class="lede">An agent runs with its user's full access. Its task needs a few capabilities. CapAuth issues a short-lived lease with only those, checks every tool call against it in code, and writes a hash-chained log.</p>
     <div class="cta">
       <a class="btn primary console-link" href="app/">Open the console</a>
       <a class="btn" href="#how">How it works</a>
     </div>
     <p class="fine console-alt">Checking for a local CapAuth server on port 8000.</p>
-    <p class="fine">Runs as an MCP server. Claude Code calls every tool through it today, unchanged. No API key.</p>
+    <p class="fine">Runs as an MCP server in front of Claude Code. No API key.</p>
   </div>
-  <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: an AI manager agent delegates one capability to a worker, and every call is checked.</figcaption></figure>
+  <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: a manager agent delegates one capability to a worker agent.</figcaption></figure>
 </div></section>
 
 <section id="problem"><div class="wrap">
   <div class="kicker">Why this exists</div>
-  <h2>Every enterprise deploying agents hits the same wall.</h2>
-  <p class="lede">Nine in ten agent pilots never reach production. They pass the boardroom, then stall in security review, because the agent runs with its user's standing access and nobody can sign off on that.</p>
-  <figure style="margin-top:28px"><img src="diagrams/motivation.svg" alt="One agent holds every key its user has; the task needs three; a thread it reads asks it to export customer data"><figcaption>Standing access is the gap. The task needs three capabilities. The agent holds forty, and anything it reads can try to use the other thirty-seven.</figcaption></figure>
+  <h2>Agents stall in security review.</h2>
+  <p class="lede">Nine in ten agent pilots never reach production. Most stall after the pilot, in security review. The agent holds its user's standing access, and a review cannot sign off on that.</p>
+  <figure style="margin-top:28px"><img src="diagrams/motivation.svg" alt="One agent holds every key its user has; the task needs three; a thread it reads asks it to export customer data"><figcaption>The task needs three capabilities. The agent holds every key its user has, and anything it reads can try to use the rest.</figcaption></figure>
   <div class="grid" style="margin-top:28px">
-    <div class="card"><h3>Non-human identities outnumber people</h3><p>Inside a large company, service accounts and agents already outnumber employees, and classic access control was built for actors whose permissions do not depend on a decision they have not made yet.</p></div>
-    <div class="card"><h3>Injection through tool results is unsolved</h3><p>An agent that reads a document or a web page can be instructed by it. There is no equivalent of a parameterized query. Detection is statistical; containment can be structural.</p></div>
-    <div class="card"><h3>Regulators now name the logs</h3><p>High-risk obligations for logging and human oversight took effect in August 2026. What counts as a sufficient agent audit log is not yet specified, and the first enforcement actions will define it.</p></div>
+    <div class="card"><h3>Non-human identities outnumber people</h3><p>Agents multiply them. Classic access control assumes an actor whose permissions do not depend on a decision it has not made yet.</p></div>
+    <div class="card"><h3>Injection through tool results is unsolved</h3><p>An agent that reads a document or a web page can be instructed by it. There is no equivalent of a parameterized query.</p></div>
+    <div class="card"><h3>Logging is now a legal duty</h3><p>EU AI Act high-risk obligations for logging and human oversight took effect in August 2026. What counts as a sufficient agent audit log is not yet specified.</p></div>
   </div>
-  <p style="margin-top:18px; font-size:14px; color:var(--muted)">Framing and figures from the AGI House Enterprise Deployment primer, Layer 7: identity, security, and governance.</p>
+  <p style="margin-top:18px; font-size:14px; color:var(--muted)">Figures from the AGI House Enterprise Deployment primer, Layer 7.</p>
 </div></section>
 
 <section id="how"><div class="wrap">
@@ -123,14 +123,14 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <li><span><b>Every tool call is checked in pure code.</b> Signature, TTL, then tool, action, and resource. Outcomes: allowed, narrowed, waiting for a person, or denied.</span></li>
     <li><span><b>The task ends, the lease is revoked,</b> and the hash-chained ledger is exported.</span></li>
   </ol>
-  <div class="rule">The model proposes and code enforces. The enforcer that gates each call makes no model call and reads no network.</div>
-  <figure><img src="diagrams/architecture.svg" alt="Architecture diagram: Claude Code holds a lease and calls tools only through the CapAuth MCP server"><figcaption>CapAuth runs as an MCP server. Claude Code is launched with it as its only tool source, so every call is enforced before it reaches Slack, GitHub, Drive, or email.</figcaption></figure>
+  <div class="rule">The model proposes and code enforces. The enforcer makes no model call.</div>
+  <figure><img src="diagrams/architecture.svg" alt="Architecture diagram: Claude Code holds a lease and calls tools only through the CapAuth MCP server"><figcaption>Claude Code is launched with CapAuth as its only tool source. Every call is enforced before it reaches a tool.</figcaption></figure>
   <figure><img src="diagrams/decision.svg" alt="The decision path for one tool call"><figcaption>The decision path for one call. Every branch appends one ledger entry.</figcaption></figure>
 </div></section>
 
 <section id="tour"><div class="wrap">
   <h2>The console</h2>
-  <p class="lede" style="margin-bottom:26px">One screen per run. What the agent planned, what it was allowed to hold, and what happened to every call.</p>
+  <p class="lede" style="margin-bottom:26px">One screen per run: the plan, the lease, and every decision.</p>
   <div class="tour">
     <figure><img src="site/console.png" alt="A run: summary, plan, lease capabilities, decisions"><figcaption><b>Runs.</b> The task, the identity it acts for, the lease with its TTL, the plan with each step ticked as its call is checked, and the decisions table.</figcaption></figure>
     <figure><img src="site/policies.png" alt="Policies: the ceiling per identity"><figcaption><b>Policies.</b> The ceiling per agent identity, as code: what can be leased, what needs a person every time, and what is never granted.</figcaption></figure>
@@ -144,29 +144,29 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <div class="grid">
     <div class="card"><span class="badge b-allow">Allowed</span><p class="mono">slack.search(channel="#payments")</p><p>Inside the lease, so it ran.</p></div>
     <div class="card"><span class="badge b-limited">Narrowed</span><p class="mono">slack.search(channel="*") narrowed to #payments</p><p>The plan wanted every channel. The lease gave one.</p></div>
-    <div class="card"><span class="badge b-approval">Waiting for a person</span><p class="mono">github.merge_pr(acme/payments-api, #481)</p><p>Sensitive under policy. It waited for the operator to approve once, then ran.</p></div>
-    <div class="card"><span class="badge b-deny">Denied</span><p class="mono">slack.post_message(channel="#payments")</p><p>The task never asked for it. Denied as overreach, with provenance.</p></div>
+    <div class="card"><span class="badge b-approval">Waiting for a person</span><p class="mono">github.merge_pr(acme/payments-api, #481)</p><p>Sensitive under policy. Waited for the operator, then ran.</p></div>
+    <div class="card"><span class="badge b-deny">Denied</span><p class="mono">slack.post_message(channel="#payments")</p><p>Not in the task. Denied, with provenance.</p></div>
   </div>
 </div></section>
 
 <section id="measure"><div class="wrap">
   <h2>The honest measurement</h2>
-  <p>72 real runs through Claude Code: three agent models, four prompt injection payload styles, CapAuth on and off, three runs per cell. Every run read the poisoned thread.</p>
+  <p>72 runs through Claude Code: three models, four injection payloads, CapAuth on and off, three runs per cell. Every run read the poisoned thread.</p>
   <table>
     <tr><th>Agent under test</th><th>Injection variants</th><th>Runs</th><th>Took the injected action</th><th>Customer data left the org</th><th>Legitimate issue filed</th></tr>
     <tr><td>Opus 5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
     <tr><td>Sonnet 5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
     <tr><td>Haiku 4.5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
   </table>
-  <p style="margin-top:16px">No model took the bait, and CapAuth never blocked the legitimate work. A security review does not sign off on a refusal rate. With CapAuth the out-of-lease action is unreachable whatever the model does, and the same lease stopped overreach that was not an attack.</p>
+  <p style="margin-top:16px">No model took the injected action. The legitimate task completed 72 of 72 times. A refusal rate is not a control; with CapAuth the out-of-lease action is unreachable regardless of the model. The same lease stopped overreach that was not an attack: a stray Slack post, a search across every channel.</p>
 </div></section>
 
 <section id="org"><div class="wrap">
   <h2>Built for an AI organization</h2>
   <div class="two">
-    <div><p>AI managers that create task-specific AI employees, humans who set direction and approve decisions, every agent tied to a responsible person. That is the shape enterprises are describing. CapAuth is the authorization for it.</p>
-    <p>A manager agent hands a worker a smaller lease through the <span class="mono">capauth.delegate</span> tool. The worker's lease must be a strict subset of the manager's, cannot outlive it, and carries the parent lease id. Authority narrows at every hop, and both leases write to one audit trail.</p>
-    <p>Verified live: the manager's lease holds three things, the worker gets one capability for five minutes, three decisions land on two hash chains linked by parent id.</p></div>
+    <div><p>AI managers create task-specific AI employees. Humans set direction and approve decisions. Every agent is tied to a responsible person.</p>
+    <p>A manager agent hands a worker a smaller lease through <span class="mono">capauth.delegate</span>. The worker's lease is a strict subset of the manager's, cannot outlive it, and carries the parent lease id. Both write to one audit trail.</p>
+    <p>Live run: the manager holds three capabilities, the worker gets one for five minutes, three decisions on two hash chains.</p></div>
     <div><video src="site/enterprise-2-ai-org.mp4" controls muted playsinline preload="metadata" poster="site/console.png" style="width:100%; border-radius:12px; border:1px solid var(--line); background:#0B1017; display:block"></video></div>
   </div>
 </div></section>
@@ -175,11 +175,11 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <h2>Enterprise controls</h2>
   <div class="grid">
     <div class="card"><h3>Policy as code</h3><p>One YAML file per agent identity: the ceiling, the actions that need a person, the actions that are never granted.</p></div>
-    <div class="card"><h3>Lease preview</h3><p>Ask what a task template would get before any agent holds it. The security team pre-checks the lease, not the transcript.</p></div>
+    <div class="card"><h3>Lease preview</h3><p>See what a task template would get before any agent holds it.</p></div>
     <div class="card"><h3>Delegation chains</h3><p>Child leases are strict subsets with shorter TTLs. The ledger shows the chain.</p></div>
-    <div class="card"><h3>Audit you can verify</h3><p>Hash-chained entries with who, for whom, what, why, and when. A signed attestation, JSONL export for a SIEM, and an offline verifier that exits non-zero on tamper.</p></div>
-    <div class="card"><h3>MCP native</h3><p>Drops in front of any MCP client. The agent and the tools do not change.</p></div>
-    <div class="card"><h3>Any model behind it</h3><p>Enforcement does not depend on the model. Use a frontier model, a local one, or a smaller worker model per task.</p></div>
+    <div class="card"><h3>Verifiable audit</h3><p>Hash-chained entries: who, for whom, what, why, when. Attestation, JSONL export, and an offline verifier that fails on tamper.</p></div>
+    <div class="card"><h3>MCP native</h3><p>Sits in front of any MCP client. The agent and the tools do not change.</p></div>
+    <div class="card"><h3>Any model</h3><p>Enforcement does not depend on the model.</p></div>
   </div>
 </div></section>
 
@@ -187,8 +187,8 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <h2>Demo videos</h2>
   <div class="vid">
     <div><video src="site/enterprise-2-ai-org.mp4" controls playsinline preload="metadata" poster="site/console.png"></video><p><b>An AI organization.</b> A live Claude Code run. The manager delegates one capability to a worker. Nothing simulated.</p></div>
-    <div><video src="site/enterprise-1-support.mp4" controls playsinline preload="metadata"></video><p><b>A customer-facing agent, before and after.</b> The customer's message asks the agent to export every record. Simulated agent, labeled on screen, because the real models declined the bait.</p></div>
-    <div><video src="site/before-after.mp4" controls playsinline preload="metadata"></video><p><b>The poisoned Slack thread, before and after.</b> Without CapAuth the export and the email run. With CapAuth both are denied and the real task still completes. Simulated agent, labeled.</p></div>
+    <div><video src="site/enterprise-1-support.mp4" controls playsinline preload="metadata"></video><p><b>Customer-facing agent, before and after.</b> The customer asks the agent to export every record. Simulated agent, labeled on screen.</p></div>
+    <div><video src="site/before-after.mp4" controls playsinline preload="metadata"></video><p><b>Poisoned Slack thread, before and after.</b> Without CapAuth the export and the email run; with CapAuth both are denied. Simulated agent, labeled.</p></div>
   </div>
 </div></section>
 
@@ -201,7 +201,7 @@ uv run python server.py            # open http://localhost:8000
 uv run pytest                      # 21 tests
 uv run python attack/demo.py --scope off   # terminal before
 uv run python attack/demo.py --scope on    # terminal after</pre>
-  <p style="margin-top:14px">Built at AGI House Enterprise Deployment Build Day, 19 September 2026, to the primer's own brief: scoped agent credentials, least privilege that survives an adversarial prompt, and a log a regulator can read.</p>
+  <p style="margin-top:14px">Built at AGI House Enterprise Deployment Build Day, 19 September 2026.</p>
 </div></section>
 
 <footer><div class="wrap" style="display:flex; flex-wrap:wrap; gap:8px 28px; align-items:center"><span><b style="color:var(--ink)">CapAuth</b> Capability authorization for AI agents</span><a href="app/">Console</a><a href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a><a href="https://github.com/HivaMohammadzadeh1/capauth/blob/master/docs/PITCH.md">Pitch script</a><span style="margin-left:auto">Built at AGI House Enterprise Deployment Build Day, 19 September 2026</span></div></footer>
