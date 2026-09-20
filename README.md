@@ -13,17 +13,17 @@ calls every tool through it, today, unchanged.
 ## Demo videos
 
 **An AI organization: a manager agent delegates to a worker.** A live Claude Code run. The manager's lease holds three things; it hands the worker one capability for five minutes; both leases write to one audit trail. Nothing simulated.
-[Watch the mp4](https://github.com/HivaMohammadzadeh1/scope/raw/master/demo/enterprise-2-ai-org.mp4)
+[Watch the mp4](https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4)
 
 ![AI organization: manager delegates to a worker](demo/enterprise-2-ai-org-preview.gif)
 
 **A customer-facing agent with standing access, before and after.** The customer's message tells the agent to export every record and email it outside. Both halves use a simulated agent and say so on screen, because the real models declined the bait in 72 of 72 runs.
-[Watch the mp4](https://github.com/HivaMohammadzadeh1/scope/raw/master/demo/enterprise-1-support.mp4)
+[Watch the mp4](https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-1-support.mp4)
 
 ![Customer support: before and after](demo/enterprise-1-support-preview.gif)
 
 **The original attack: a poisoned Slack thread.** Simulated agent, labeled. Without CapAuth the export and the email run; with CapAuth both are denied and the real task still completes.
-[Watch the mp4](https://github.com/HivaMohammadzadeh1/scope/raw/master/demo/before-after.mp4)
+[Watch the mp4](https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/before-after.mp4)
 
 ![Poisoned thread: before and after](demo/before-after-preview.gif)
 
