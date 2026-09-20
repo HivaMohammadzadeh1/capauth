@@ -80,7 +80,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <header class="nav"><div class="wrap">
   <a class="brand" href="#"><img src="site/brand/mark.svg" alt="" width="26" height="26">CapAuth</a>
-  <a class="l" href="#problem">Problem</a><a class="l" href="#fix">Fix</a><a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
+  <a class="l" href="#problem">Problem</a><a class="l" href="#fix">Fix</a><a class="l" href="#enterprise">Enterprise</a><a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
   <a class="btn console-link" href="app/">Open the console</a>
   <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
@@ -125,6 +125,20 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <div class="card"><h3>Enforced in code</h3><p>Every tool call is checked against the lease by a deterministic gate. The model proposes; the code decides.</p></div>
     <div class="card"><h3>Logged for review</h3><p>Every decision lands in a hash-chained ledger with who, for whom, what, why, and when.</p></div>
   </div>
+</div></section>
+
+<section id="enterprise"><div class="wrap">
+  <div class="kicker">Why it works for an enterprise</div>
+  <h2>What a security review, a compliance team, and an IT owner each get.</h2>
+  <div class="grid">
+    <div class="card"><h3>Something a review can sign</h3><p>A signed lease per task and a verifiable ledger are artifacts. A model's refusal rate is not. The review evaluates the ceiling and the enforcer, not the transcript.</p></div>
+    <div class="card"><h3>Fits the identity you already run</h3><p>The policy ceiling is per agent identity, the way a service account is scoped today. The lease is the just-in-time narrowing on top. Every entry carries the human the agent acts for.</p></div>
+    <div class="card"><h3>Logging a regulator can read</h3><p>Who, for whom, what, why, and when, hash-chained, with an attestation and JSONL export to a SIEM. Aimed at the EU AI Act high-risk logging and oversight duties in force since August 2026.</p></div>
+    <div class="card"><h3>People where it matters</h3><p>Sensitive actions wait for a person. Approvals are recorded under the operator's identity, once or for the task, never silently.</p></div>
+    <div class="card"><h3>No change to agents or tools</h3><p>CapAuth sits as an MCP server in front of the tools. The agent framework and the tool servers stay as they are. Any model behind it, frontier or local.</p></div>
+    <div class="card"><h3>Ready for AI organizations</h3><p>When a manager agent creates a worker, the worker's lease is a strict subset with a shorter TTL, and both write to one audit trail. Authority narrows at every hop.</p></div>
+  </div>
+  <p style="margin-top:22px">The numbers behind these claims are on this page: 72 measured runs, a live delegation, and the full source.</p>
 </div></section>
 
 <section id="how"><div class="wrap">
