@@ -81,7 +81,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <a class="brand" href="#"><i></i>CapAuth</a>
   <a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
-  <a class="btn" href="app/">Open the console</a>
+  <a class="btn console-link" href="app/">Open the console</a>
   <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
 </div></header>
 
@@ -91,9 +91,10 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <h1>A lease for one task, not a token for everything.</h1>
     <p class="lede">An agent today runs with its user's full access to Slack, GitHub, Drive, and email. The task in front of it needs three things. CapAuth gives the agent only those three, for one task, checks every tool call against that lease in code, and writes a log a security review can verify.</p>
     <div class="cta">
-      <a class="btn primary" href="app/">Open the console</a>
+      <a class="btn primary console-link" href="app/">Open the console</a>
       <a class="btn" href="#how">How it works</a>
     </div>
+    <p class="fine console-alt">Checking for a local CapAuth server on port 8000.</p>
     <p class="fine">Runs as an MCP server. Claude Code calls every tool through it today, unchanged. No API key.</p>
   </div>
   <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: an AI manager agent delegates one capability to a worker, and every call is checked.</figcaption></figure>
@@ -135,7 +136,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <figure><img src="site/policies.png" alt="Policies: the ceiling per identity"><figcaption><b>Policies.</b> The ceiling per agent identity, as code: what can be leased, what needs a person every time, and what is never granted.</figcaption></figure>
     <figure><img src="site/decisions.png" alt="Decisions: allowed, narrowed, waiting for approval, denied"><figcaption><b>Decisions.</b> Time, outcome, call, and reason for every tool call, with worker leases indented under their manager and injected instructions called out.</figcaption></figure>
   </div>
-  <p style="margin-top:22px"><a class="btn" href="app/">Open the hosted console</a> <span class="fine" style="margin-left:10px">Replays of real runs. Live runs need the local server.</span></p>
+  <p style="margin-top:22px"><a class="btn console-link" href="app/">Open the console</a> <span class="fine console-alt" style="margin-left:10px"></span></p>
 </div></section>
 
 <section id="outcomes"><div class="wrap">
@@ -204,5 +205,22 @@ uv run python attack/demo.py --scope on    # terminal after</pre>
 </div></section>
 
 <footer><div class="wrap" style="display:flex; flex-wrap:wrap; gap:8px 28px; align-items:center"><span><b style="color:var(--ink)">CapAuth</b> Capability authorization for AI agents</span><a href="app/">Console</a><a href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a><a href="https://github.com/HivaMohammadzadeh1/capauth/blob/master/docs/PITCH.md">Pitch script</a><span style="margin-left:auto">Built at AGI House Enterprise Deployment Build Day, 19 September 2026</span></div></footer>
+<script>
+// The console button goes to the live product when it is running on this machine, else to the hosted replay.
+(() => {
+  const LIVE = "http://localhost:8000/", HOSTED = "app/";
+  const links = document.querySelectorAll(".console-link"), alts = document.querySelectorAll(".console-alt");
+  const set = (live) => {
+    links.forEach((a) => { a.href = live ? LIVE : HOSTED; a.textContent = live ? "Open the live console" : "Open the console"; });
+    alts.forEach((el) => { el.innerHTML = live
+      ? 'Live on this machine. Prefer the hosted replay instead? <a href="' + HOSTED + '">Open the hosted console</a>.'
+      : 'Hosted replays of real runs. Running CapAuth locally? <a href="' + LIVE + '">Open the live console</a> on port 8000.'; });
+  };
+  set(false);
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 1200);
+  fetch(LIVE + "api/config", {mode: "no-cors", cache: "no-store", signal: ctl.signal}).then(() => { clearTimeout(t); set(true); }).catch(() => {});
+})();
+</script>
 </body>
 </html>
