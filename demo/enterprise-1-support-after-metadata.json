@@ -3,7 +3,7 @@
   "mode": "replay",
   "recording": "support-on-simulated",
   "scope": "on",
-  "title": "After: the same agent holds a lease for one conversation. Export and outbound email are denied; the refund waits for a person. Simulated agent.",
+  "title": "After: the same agent holds a lease for one conversation | Export denied. Outbound email denied. The refund waits for a person. Simulated agent.",
   "approval_clicks": 1,
   "terminal": "Task complete. Lease sc_416e revoked at 16:08:17, 9 min 59 s early. 6 decisions, chain intact.",
   "success": true

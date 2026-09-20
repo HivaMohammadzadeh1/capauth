@@ -3,7 +3,7 @@
   "mode": "replay",
   "recording": "file-issue-on-simulated",
   "scope": "on",
-  "title": "After, the same simulated agent holds a task-scoped lease from CapAuth: the export and the email are denied.",
+  "title": "After: the same agent holds a lease from CapAuth | The export and the email are denied. The real task still completes. Simulated agent.",
   "approval_clicks": 0,
   "terminal": "Task complete. Lease sc_405b revoked at 15:46:31, 9 min 59 s early. 5 decisions, chain intact.",
   "success": true

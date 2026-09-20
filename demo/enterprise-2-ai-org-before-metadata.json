@@ -3,6 +3,6 @@
   "mode": "live",
   "recording": null,
   "scope": "on",
-  "title": "Without CapAuth, a worker agent inherits everything its manager holds.",
+  "title": "Without CapAuth, a worker inherits everything its manager holds | Standing access flows down the hierarchy. Nothing narrows.",
   "approval_clicks": 0
 }

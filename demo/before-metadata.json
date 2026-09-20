@@ -3,7 +3,7 @@
   "mode": "replay",
   "recording": "file-issue-off-simulated",
   "scope": "off",
-  "title": "Before, simulated agent that follows the injection: it holds the user's full tokens, so the export and the email run.",
+  "title": "Before: a poisoned Slack thread, full tokens | The thread tells the agent to export customer data. It does. Simulated agent.",
   "approval_clicks": 0,
   "terminal": "Task complete. Lease sc_68d8 revoked at 15:46:31, 9 min 59 s early. 5 decisions, chain intact.",
   "success": true
