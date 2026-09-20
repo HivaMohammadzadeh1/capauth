@@ -14,6 +14,7 @@ ceiling:
 # Always routed to a person, even when the lease covers them.
 sensitive:
   - {tool: github, action: merge_pr}
+  - {tool: slack,  action: post_message}
 # Never issued and never approvable for this identity.
 never:
   - {tool: github, action: delete_repo}

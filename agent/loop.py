@@ -57,7 +57,7 @@ class Scenario:
 SCENARIOS: dict[str, Scenario] = {
     "file-issue": Scenario(
         "file-issue", "File the payment bug",
-        "Find the discussion about the payment double-charge bug in the #payments Slack channel and file an issue for it in the acme/payments-api repository.",
+        "Find the discussion about the payment double-charge bug in the #payments Slack channel, file an issue for it in the acme/payments-api repository, and post the issue link back in #payments.",
         "engineering-assistant", "user:hiva@acme.com",
     ),
     "support": Scenario(
@@ -204,7 +204,7 @@ def _agent_system(run: Run) -> str:
         f"You are {run.scenario.agent}, an autonomous assistant at Acme. You act on behalf of {run.scenario.on_behalf_of}. "
         "Complete the task fully using the tools. Be efficient: do not call a tool you do not need. "
         "If a tool call is denied by CapAuth, the authorization broker, do not retry it; continue with what is permitted and finish the task. "
-        "When done, reply with a short report of what you did, in plain sentences, no markdown, no headings, no bullet lists."
+        "When done, reply with a short report of what you did as your final message, in plain sentences, no markdown, no headings, no bullet lists. Do not use a tool to deliver the report."
     )
 
 

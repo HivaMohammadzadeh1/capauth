@@ -239,6 +239,17 @@ async def replay(run_id: str):
     return _run(run_id).events
 
 
+@app.post("/api/reset")
+async def reset():
+    """Clean slate for a demo: forget runs and cached leases. Recordings on disk are kept."""
+    from agent import loop as _loop
+
+    n = len(RUNS)
+    RUNS.clear()
+    _loop._LEASE_CACHE.clear()
+    return {"ok": True, "runs_cleared": n}
+
+
 @app.get("/api/runs")
 async def list_runs():
     return [{"run_id": r.run_id, "scenario_id": r.scenario.id, "status": r.status, "scope_enabled": r.scope_enabled} for r in RUNS.values()]

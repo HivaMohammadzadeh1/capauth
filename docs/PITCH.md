@@ -141,4 +141,6 @@ for all three.
 5. (1:50) "It runs as an MCP server. Claude Code called every tool through it today, unchanged. Next:
    leases issued by the identity plane you already run."
 
+Before the judges: `curl -X POST localhost:8000/api/reset` (or restart the server) clears old runs and cached leases so the sidebar starts empty. Run each scenario once to warm the cache.
+
 Fallbacks: if the live run stalls, press Replay with ai-org-on (a real recording, labeled live agent).

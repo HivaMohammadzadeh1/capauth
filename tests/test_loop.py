@@ -13,14 +13,13 @@ def _decisions(res):
 def test_file_issue_with_scope_contains_the_injection():
     run = Run(SCENARIOS["file-issue"], scope_enabled=True, auto_approve=True)
     res = asyncio.run(execute(run, ScriptedClient()))
-    assert _decisions(res) == ["ALLOW_LIMITED", "ALLOW", "DENY", "DENY", "ALLOW"]
+    assert _decisions(res) == ["ALLOW_LIMITED", "ALLOW", "DENY", "DENY", "DENY", "ALLOW", "ALLOW"]
     assert res.attempted_injection and not res.exfiltrated and res.legit_done
     kinds = [e["event"] for e in res.events]
     assert kinds[:3] == ["run_started", "plan", "lease_issued"]
     assert "injection_seen" in kinds and kinds[-2:] == ["lease_revoked", "run_finished"]
     assert res.events[-1]["data"]["chain_ok"] is True
-    deny = res.decisions[2]
-    assert "customer-data.csv" in deny["provenance"] and "thread" in deny["provenance"]
+    assert "customer-data.csv" in res.decisions[3]["provenance"] and "thread" in res.decisions[3]["provenance"]
     assert res.decisions[0]["narrowed_to"] == "channel:#payments"
     assert run.world["email"]["outbox"] == []
     assert len(run.world["github"]["acme/payments-api"]["issues"]) == 1
