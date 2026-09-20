@@ -69,7 +69,7 @@ async def record_run(browser, base_url, name, enabled, output_dir):
                 raise RuntimeError(f"Run failed to start: HTTP {response.status}")
             run_id = (await response.json())["run_id"]
             print(f"{name}: run {run_id}, Scope {'ON' if enabled else 'OFF'}", flush=True)
-            await page.locator("#ledger .end").filter(has_text="Task complete").wait_for(
+            await page.locator("#ledger .endrow, #ledger .end").filter(has_text="Task complete").wait_for(
                 state="visible", timeout=240_000
             )
             # Intentional viewing hold, after DOM-based completion detection.
@@ -182,7 +182,7 @@ async def single_capture(args):
                         await approval.first.click(timeout=1000)
                         metadata['approval_clicks'] += 1
                         print(f"{name}: clicked Approve once", flush=True)
-                    terminal = page.locator('#ledger .end')
+                    terminal = page.locator('#ledger .endrow, #ledger .end')
                     if await terminal.count():
                         status = await terminal.inner_text()
                         if any(t in status for t in ('Task complete', 'Task failed', 'Task expired')):
