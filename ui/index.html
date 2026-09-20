@@ -867,10 +867,10 @@ setInterval(loadRecentRuns, 8000);
       const pol = await (await fetch("/api/policies/" + encodeURIComponent(agent))).json();
       const isSens = (c) => (pol.sensitive || []).some((s) => s[0] === c.tool && s[1] === c.action);
       const rows = (pol.ceiling || []).map((c) => "<tr><td>" + esc(c.tool) + "</td><td>" + esc(c.action.replace(/_/g, " ")) + '</td><td class="mono">' + esc(c.resource) + "</td><td>" +
-        (isSens(c) ? '<span class="badge b-approval">Needs approval</span>' : '<span class="badge b-allow">In ceiling</span>') + "</td></tr>").join("") +
+        (isSens(c) ? '<span class="badge b-approval">Needs approval</span>' : '<span class="badge b-allow">Allowed at most</span>') + "</td></tr>").join("") +
         (pol.never || []).map((n) => "<tr class=\"off\"><td>" + esc(n[0]) + "</td><td>" + esc(n[1].replace(/_/g, " ")) + '</td><td class="mono">*</td><td><span class="badge b-deny">Never</span></td></tr>').join("");
       $("policyBody").innerHTML = '<div class="kv" style="margin-bottom:14px"><div><span>Identity</span><b class="mono">' + esc(pol.principal) + "</b></div><div><span>Organization domain</span><b>" + esc(pol.org_domain) + "</b></div><div><span>Lease TTL</span><b>" + Math.round(pol.ttl_seconds / 60) + " min</b></div><div><span>File</span><b class=\"mono\">policy/" + esc(agent) + ".yaml</b></div></div>" +
-        '<table class="tbl"><thead><tr><th>Tool</th><th>Action</th><th>Resource ceiling</th><th>Rule</th></tr></thead><tbody>' + rows + "</tbody></table>";
+        '<table class="tbl"><thead><tr><th>Tool</th><th>Action</th><th>Widest resource this identity may hold</th><th>Rule</th></tr></thead><tbody>' + rows + "</tbody></table>";
     }catch(err){ $("policyBody").innerHTML = '<p class="hint">Could not load the policy.</p>'; }
   }
   async function openPolicies(){
