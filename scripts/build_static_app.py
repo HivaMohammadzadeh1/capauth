@@ -42,13 +42,11 @@ def main() -> None:
 
     html = (ROOT / "ui" / "index.html").read_text()
     html = html.replace('href="/ui/logo.svg"', 'href="logo.svg"').replace('src="/ui/logo.svg"', 'src="logo.svg"')
-    banner = '''<div class="hosted" role="note">Hosted preview. Every run here is a recording of a real session. Live runs need the local server with Claude Code: <a href="https://github.com/HivaMohammadzadeh1/capauth">get the code</a>.</div>
-<div class="main">'''
+    banner = '''<div class="main">
+<div class="hosted" role="note">Hosted preview. Every run here is a recording of a real session. Live runs need the local server with Claude Code: <a href="https://github.com/HivaMohammadzadeh1/capauth">get the code</a>.</div>'''
     html = html.replace('<div class="main">', banner, 1)
     html = html.replace("</style>", '''.hosted{background:#1B2430; color:#fff; font-size:13.5px; padding:9px 28px; text-align:center}
 .hosted a{color:#9DB6F5}
-.main{display:flex; flex-direction:column}
-body{flex-direction:row}
 </style>''', 1)
     shim_js = r'''<script>
 // ---- hosted preview: every API read comes from a JSON file ----
