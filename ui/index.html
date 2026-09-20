@@ -337,21 +337,42 @@ async function loadScenarios(){
     syncInjectionEnabled();
   }catch(e){ console.error("scenarios failed", e); }
 }
-function syncScenarioHint(){
+const POLICY_CACHE = {};
+let CONFIG = null;
+async function syncScenarioHint(){
   const o = $("scenario").selectedOptions[0];
   if(!o) return;
+  const agent = o.dataset.agent || "";
   $("task").textContent = o.dataset.task || "";
-  $("fAgent").textContent = o.dataset.agent || "-";
+  $("fAgent").textContent = agent || "-";
   $("fObo").textContent = stripId(o.dataset.obo || "") || "-";
   $("runTitle").textContent = o.dataset.title || "Runs";
   $("fStatus").textContent = "Ready"; $("fStatus").className = "badge b-neutral";
-  if(!current || current.finished){
-    $("plan").innerHTML = '<li class="hint">The agent writes its plan before any tool call. Each step is ticked when its call is checked.</li>';
+  if(current && !current.finished) return;
+  $("plan").innerHTML = '<li class="hint">The agent writes its plan first, before any tool call. Each step is ticked here as its call is checked.</li>';
+  $("ledger").innerHTML = '<tr class="empty"><td colspan="4">Each tool call the agent makes lands here with its decision.</td></tr>';
+  $("approvalHost").innerHTML = "";
+  $("fLease").textContent = "issued when the task starts";
+  $("fIssued").textContent = "-"; $("fExpires").textContent = "-"; setArc(0, false);
+  $("fSource").textContent = "planner, clamped to the ceiling";
+  try{
+    if(!CONFIG) CONFIG = await (await fetch("/api/config")).json();
+    $("fBackend").textContent = CONFIG.backend === "cli" ? "Claude Code, " + (CONFIG.default_model || "opus") : CONFIG.backend;
+  }catch(e){ $("fBackend").textContent = "-"; }
+  try{
+    if(!POLICY_CACHE[agent]) POLICY_CACHE[agent] = await (await fetch("/api/policies/" + encodeURIComponent(agent))).json();
+    const pol = POLICY_CACHE[agent];
+    if($("scenario").selectedOptions[0] !== o) return;   // the user moved on
+    $("fTtl").textContent = Math.round(pol.ttl_seconds / 60) + " min";
+    $("fPolicy").textContent = "policy/" + agent + ".yaml";
+    const isSens = (c) => (pol.sensitive || []).some((x) => x[0] === c.tool && x[1] === c.action);
+    const rows = (pol.ceiling || []).map((c) => "<tr><td>" + esc(c.tool) + "</td><td>" + esc(c.action.replace(/_/g, " ")) + '</td><td class="mono">' + esc(c.resource) + "</td><td>" +
+      (isSens(c) ? '<span class="badge b-approval">Needs a person</span>' : '<span class="badge b-off">Can be leased</span>') + "</td></tr>").join("");
+    $("caps").innerHTML = '<p class="hint" style="margin:0 0 10px">This is the ceiling for <span class="mono">' + esc(agent) + '</span>. When the task starts, the lease will be a subset of it: only what the plan needs, for ' + Math.round(pol.ttl_seconds / 60) + ' minutes.</p>' +
+      '<table class="tbl"><thead><tr><th>Tool</th><th>Action</th><th>Widest resource</th><th>Status</th></tr></thead><tbody>' + rows + "</tbody></table>";
+  }catch(e){
+    $("fTtl").textContent = "-"; $("fPolicy").textContent = "-";
     $("caps").innerHTML = '<div class="hint">Only what the plan needs, signed, for the lease TTL. Everything else in the ceiling stays off.</div>';
-    $("ledger").innerHTML = '<tr class="empty"><td colspan="4">Each tool call the agent makes lands here with its decision.</td></tr>';
-    $("approvalHost").innerHTML = "";
-    ["fLease","fIssued","fTtl","fPolicy","fSource"].forEach((k) => $(k).textContent = "-");
-    $("fExpires").textContent = "-"; setArc(0, false);
   }
 }
 
