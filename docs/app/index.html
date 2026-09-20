@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CapAuth</title>
-<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -152,12 +152,16 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
 @media (max-width:1400px){.toolbar .field{display:none}}
 @media (max-width:1100px){.content{grid-template-columns:1fr} .side{display:none}}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+.hosted{background:#1B2430; color:#fff; font-size:13.5px; padding:9px 28px; text-align:center}
+.hosted a{color:#9DB6F5}
+.main{display:flex; flex-direction:column}
+body{flex-direction:row}
 </style>
 </head>
 <body>
 
 <aside class="side">
-  <div class="brand"><img src="/ui/logo.svg" alt="" width="24" height="24"><div>CapAuth<small>Capability authorization</small></div></div>
+  <div class="brand"><img src="logo.svg" alt="" width="24" height="24"><div>CapAuth<small>Capability authorization</small></div></div>
   <nav class="nav">
     <a href="#" id="navRuns" class="active">Runs</a>
     <a href="#" id="navPolicies">Policies</a>
@@ -167,6 +171,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
   <div class="org"><b>Acme Corp</b>Production</div>
 </aside>
 
+<div class="hosted" role="note">Hosted preview. Every run here is a recording of a real session. Live runs need the local server with Claude Code: <a href="https://github.com/HivaMohammadzadeh1/capauth">get the code</a>.</div>
 <div class="main">
   <div class="pagehead">
     <div><h1 id="runTitle">Runs</h1><div class="sub">CapAuth issues a lease from the plan and checks every tool call.</div></div>
@@ -237,6 +242,20 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
   </div>
 </div>
 
+<script>
+// ---- hosted preview: every API read comes from a JSON file ----
+(() => {
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (url, opts) => {
+    if (typeof url === "string" && url.startsWith("/api/")) {
+      const rest = url.slice("/api/".length);
+      if (opts && opts.method && opts.method !== "GET") return Promise.resolve(new Response("{}", {status: 405}));
+      return realFetch("api/" + rest + ".json");
+    }
+    return realFetch(url, opts);
+  };
+})();
+</script>
 <script>
 "use strict";
 
@@ -928,6 +947,30 @@ setInterval(loadRecentRuns, 8000);
   $("refreshAudit").addEventListener("click", loadAudit);
   $("closePolicies").addEventListener("click", () => { setActive("navRuns"); view(""); });
   $("closeAudit").addEventListener("click", () => { setActive("navRuns"); view(""); });
+})();
+</script>
+
+<script>
+// ---- hosted preview: "Run task" replays the recording of a real run ----
+(() => {
+  const btn = document.getElementById("runBtn");
+  const fresh = btn.cloneNode(true);
+  btn.replaceWith(fresh);
+  fresh.textContent = "Play recorded run";
+  fresh.title = "Hosted preview: replays a recording of a real run for this scenario";
+  fresh.addEventListener("click", async () => {
+    const sel = document.getElementById("scenario");
+    const on = document.getElementById("scopeToggle").checked;
+    const want = sel.value + "-" + (on ? "on" : "off");
+    let recs = [];
+    try { recs = await (await fetch("/api/recordings")).json(); } catch (e) {}
+    const name = recs.includes(want) ? want : recs.includes(want + "-simulated") ? want + "-simulated" : null;
+    if (!name) { alert("No recording for this scenario yet."); return; }
+    const ev = await (await fetch("/api/recordings/" + name)).json();
+    playEvents(ev, name, {simulated: name.endsWith("-simulated")});
+  });
+  document.getElementById("exportBtn").title = "Audit export needs the local server";
+  const un = document.querySelector(".user .un"); if (un) un.innerHTML = "preview<small>Read only</small>";
 })();
 </script>
 </body>

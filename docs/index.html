@@ -36,6 +36,17 @@ p{margin:0 0 14px; max-width:68ch}
 .lede{font-size:21px; color:var(--ink-2); max-width:60ch}
 .kicker{font-size:14px; font-weight:600; color:var(--accent); margin-bottom:10px}
 .cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:26px}
+.fine{font-size:14px; color:var(--muted); margin-top:18px}
+.hero-grid{display:grid; grid-template-columns:minmax(300px,5fr) minmax(320px,6fr); gap:48px; align-items:center}
+.hero-grid .shot{margin:0; max-height:none; box-shadow:0 20px 60px rgba(27,36,48,.14)}
+.hero-grid video{width:100%; display:block; background:#0B1017}
+.hero-grid figcaption{padding:10px 14px; background:#fff}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.tour{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px}
+.tour figure{margin:0}
+.tour img{width:100%; height:auto; display:block; border-radius:10px; border:1px solid var(--line)}
+.tour figcaption{font-size:14.5px; color:var(--ink-2); margin-top:10px}
+.tour figcaption b{color:var(--ink)}
 .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px}
 .card{border:1px solid var(--line); border-radius:12px; padding:20px 22px; background:#fff}
 .card p{font-size:15.5px; color:var(--ink-2); margin:0}
@@ -70,18 +81,22 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <a class="brand" href="#"><i></i>CapAuth</a>
   <a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
-  <a class="btn" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
+  <a class="btn" href="app/">Open the console</a>
+  <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
 </div></header>
 
-<section class="hero"><div class="wrap">
-  <div class="kicker">Capability authorization for AI agents</div>
-  <h1>A lease for one task, not a token for everything.</h1>
-  <p class="lede">An agent today runs with its user's full access to Slack, GitHub, Drive, and email. The task in front of it needs three things. CapAuth gives the agent only those three, for the length of one task, checks every tool call against that lease in code, and writes a log a security review can verify.</p>
-  <div class="cta">
-    <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">See the code</a>
-    <a class="btn" href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4">Watch a live run (mp4)</a>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <div class="kicker">Capability authorization for AI agents</div>
+    <h1>A lease for one task, not a token for everything.</h1>
+    <p class="lede">An agent today runs with its user's full access to Slack, GitHub, Drive, and email. The task in front of it needs three things. CapAuth gives the agent only those three, for one task, checks every tool call against that lease in code, and writes a log a security review can verify.</p>
+    <div class="cta">
+      <a class="btn primary" href="app/">Open the console</a>
+      <a class="btn" href="#how">How it works</a>
+    </div>
+    <p class="fine">Runs as an MCP server. Claude Code calls every tool through it today, unchanged. No API key.</p>
   </div>
-  <figure class="shot" style="margin-top:40px; max-height:none"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata" style="width:100%; display:block; background:#0B1017"></video><figcaption style="padding:10px 14px">A live run, recorded from the console: an AI manager agent delegates one capability to a worker agent, and every call is checked. No sound.</figcaption></figure>
+  <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: an AI manager agent delegates one capability to a worker, and every call is checked.</figcaption></figure>
 </div></section>
 
 <section id="problem"><div class="wrap">
@@ -95,13 +110,6 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <div class="card"><h3>Regulators now name the logs</h3><p>High-risk obligations for logging and human oversight took effect in August 2026. What counts as a sufficient agent audit log is not yet specified, and the first enforcement actions will define it.</p></div>
   </div>
   <p style="margin-top:18px; font-size:14px; color:var(--muted)">Framing and figures from the AGI House Enterprise Deployment primer, Layer 7: identity, security, and governance.</p>
-  <h2 style="margin-top:48px">Standing access is the gap.</h2>
-  <div class="two">
-    <div><p>Anything an agent reads, a document, a Slack thread, a web page, can carry an instruction the user never wrote. Detecting those instructions is a statistical problem and it is not solved. CapAuth does not try. It makes the out-of-lease action unreachable: the capability is not there to borrow.</p>
-    <p>The same lease catches overreach that is not an attack. In our runs an agent tried to post a Slack message the task never asked for, and a plan that wanted to search every channel was narrowed to one.</p></div>
-    <div class="card"><h3>What "file the payment bug" needs</h3>
-      <p class="mono" style="line-height:1.9">slack.search &nbsp; #payments<br>slack.read_thread &nbsp; #payments/*<br>github.create_issue &nbsp; acme/payments-api<br><span style="color:var(--muted); text-decoration:line-through">everything else, for the next ten minutes</span></p></div>
-  </div>
 </div></section>
 
 <section id="how"><div class="wrap">
@@ -117,6 +125,17 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
   <div class="rule">The model proposes and code enforces. The enforcer that gates each call makes no model call and reads no network.</div>
   <figure><img src="diagrams/architecture.svg" alt="Architecture diagram: Claude Code holds a lease and calls tools only through the CapAuth MCP server"><figcaption>CapAuth runs as an MCP server. Claude Code is launched with it as its only tool source, so every call is enforced before it reaches Slack, GitHub, Drive, or email.</figcaption></figure>
   <figure><img src="diagrams/decision.svg" alt="The decision path for one tool call"><figcaption>The decision path for one call. Every branch appends one ledger entry.</figcaption></figure>
+</div></section>
+
+<section id="tour"><div class="wrap">
+  <h2>The console</h2>
+  <p class="lede" style="margin-bottom:26px">One screen per run. What the agent planned, what it was allowed to hold, and what happened to every call.</p>
+  <div class="tour">
+    <figure><img src="site/console.png" alt="A run: summary, plan, lease capabilities, decisions"><figcaption><b>Runs.</b> The task, the identity it acts for, the lease with its TTL, the plan with each step ticked as its call is checked, and the decisions table.</figcaption></figure>
+    <figure><img src="site/policies.png" alt="Policies: the ceiling per identity"><figcaption><b>Policies.</b> The ceiling per agent identity, as code: what can be leased, what needs a person every time, and what is never granted.</figcaption></figure>
+    <figure><img src="site/decisions.png" alt="Decisions: allowed, narrowed, waiting for approval, denied"><figcaption><b>Decisions.</b> Time, outcome, call, and reason for every tool call, with worker leases indented under their manager and injected instructions called out.</figcaption></figure>
+  </div>
+  <p style="margin-top:22px"><a class="btn" href="app/">Open the hosted console</a> <span class="fine" style="margin-left:10px">Replays of real runs. Live runs need the local server.</span></p>
 </div></section>
 
 <section id="outcomes"><div class="wrap">
@@ -149,7 +168,6 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <p>Verified live: the manager's lease holds three things, the worker gets one capability for five minutes, three decisions land on two hash chains linked by parent id.</p></div>
     <div><video src="site/enterprise-2-ai-org.mp4" controls muted playsinline preload="metadata" poster="site/console.png" style="width:100%; border-radius:12px; border:1px solid var(--line); background:#0B1017; display:block"></video></div>
   </div>
-  <figure><img src="diagrams/lifecycle.svg" alt="Lease lifecycle"><figcaption>Nothing about a lease survives the task. The next task starts from its own plan.</figcaption></figure>
 </div></section>
 
 <section id="controls"><div class="wrap">
@@ -185,6 +203,6 @@ uv run python attack/demo.py --scope on    # terminal after</pre>
   <p style="margin-top:14px">Built at AGI House Enterprise Deployment Build Day, 19 September 2026, to the primer's own brief: scoped agent credentials, least privilege that survives an adversarial prompt, and a log a regulator can read.</p>
 </div></section>
 
-<footer><div class="wrap">CapAuth. Capability authorization for AI agents. <a href="https://github.com/HivaMohammadzadeh1/capauth">github.com/HivaMohammadzadeh1/capauth</a></div></footer>
+<footer><div class="wrap" style="display:flex; flex-wrap:wrap; gap:8px 28px; align-items:center"><span><b style="color:var(--ink)">CapAuth</b> Capability authorization for AI agents</span><a href="app/">Console</a><a href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a><a href="https://github.com/HivaMohammadzadeh1/capauth/blob/master/docs/PITCH.md">Pitch script</a><span style="margin-left:auto">Built at AGI House Enterprise Deployment Build Day, 19 September 2026</span></div></footer>
 </body>
 </html>

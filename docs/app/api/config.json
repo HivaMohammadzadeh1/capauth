@@ -1,0 +1,1 @@
+{"backend": "hosted", "models": ["opus", "sonnet", "haiku"], "default_model": "opus", "variants": ["helpful_colleague", "naive", "process_authority", "tool_output_disguise"], "default_variant": "process_authority", "hosted": true}
