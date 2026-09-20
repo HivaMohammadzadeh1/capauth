@@ -31,6 +31,13 @@ select{display:none}
 .nav a{display:block; padding:8px 10px; border-radius:8px; color:var(--ink-2); font-weight:500}
 .nav a:hover{background:var(--bg)}
 .nav a.active{background:var(--accent-soft); color:var(--accent)}
+.recent{margin-top:18px; padding:0 4px}
+.recent .rh{font-size:12px; color:var(--muted); font-weight:600; padding:0 6px 6px}
+.recent ul{list-style:none; margin:0; padding:0; max-height:300px; overflow:auto}
+.recent li{padding:6px 6px; border-radius:6px; font-size:12.5px; color:var(--ink-2); cursor:pointer; display:flex; justify-content:space-between; gap:8px; align-items:center}
+.recent li:hover{background:var(--bg)}
+.recent li .id{font-family:"JetBrains Mono",monospace; color:var(--muted); font-size:11.5px}
+.recent li.hint{cursor:default; color:var(--muted)}
 .side .org{margin-top:auto; padding:12px 10px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); line-height:1.6}
 .side .org b{display:block; color:var(--ink); font-weight:600}
 
@@ -144,6 +151,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
     <a href="#" id="navPolicies">Policies</a>
     <a href="#" id="navAudit">Audit log</a>
   </nav>
+  <div class="recent"><div class="rh">Recent runs</div><ul id="recentRuns"><li class="hint">No runs yet.</li></ul></div>
   <div class="org"><b>Acme Corp</b>Production<br>MCP gateway for Claude Code</div>
 </aside>
 
@@ -307,6 +315,7 @@ async function loadScenarios(){
     list.forEach((s) => {
       const o = document.createElement("option");
       o.value = s.id;
+      o.dataset.agent = s.agent || "";
       o.textContent = s.title;
       o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of;
       sel.appendChild(o);
@@ -818,6 +827,28 @@ $("scopeToggle").addEventListener("change", (e) => {
 loadConfig();
 loadScenarios();
 loadRecordings();
+
+// ---- recent runs (server side), click to replay that run's events
+async function loadRecentRuns(){
+  try{
+    const runs = await (await fetch("/api/runs")).json();
+    const ul = $("recentRuns"); ul.innerHTML = "";
+    const titles = {}; [...$("scenario").options].forEach((o) => titles[o.value] = o.textContent);
+    runs.slice(-8).reverse().forEach((r) => {
+      const li = document.createElement("li");
+      li.innerHTML = "<span>" + esc((titles[r.scenario_id] || r.scenario_id).split(":")[0]) + " <span class=\"badge b-" + (r.status === "complete" ? "allow" : r.status === "failed" ? "deny" : "neutral") + "\">" + esc(r.status) + "</span></span><span class=\"id\">" + esc(r.run_id.replace("run_", "")) + "</span>";
+      li.title = "Replay this run";
+      li.addEventListener("click", async () => {
+        const ev = await (await fetch("/api/runs/" + r.run_id + "/replay")).json();
+        playEvents(ev, r.run_id, {simulated:false, label:"recording, live agent"});
+      });
+      ul.appendChild(li);
+    });
+    if(!runs.length) ul.innerHTML = '<li class="hint">No runs yet.</li>';
+  }catch(e){ /* no server (dev replay) */ }
+}
+loadRecentRuns();
+setInterval(loadRecentRuns, 8000);
 
 // ---- sidebar navigation: Runs (this page), Policies (drawer), Audit log (drawer)
 (function(){
