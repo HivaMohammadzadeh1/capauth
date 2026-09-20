@@ -88,17 +88,14 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <section class="hero"><div class="wrap hero-grid">
   <div>
-    <div class="kicker">The problem</div>
     <h1>AI agents run with their user's full access.</h1>
-    <p class="lede">A task that needs three permissions gets tokens for everything, valid for months. Anything the agent reads can use them. Nine in ten agent pilots stall before production, many in security review.</p>
-    <div class="kicker" style="margin-top:26px">The fix</div>
-    <p class="lede"><b>CapAuth</b> issues a signed lease per task: the capabilities the plan needs, for ten minutes, checked on every tool call by code, recorded in a hash-chained log.</p>
+    <p class="lede">A task that needs three permissions gets tokens for everything, valid for months, usable by anything the agent reads.</p>
+    <p class="lede"><b>CapAuth</b> issues a signed lease per task, checks every tool call against it in code, and records each decision in a hash-chained log.</p>
     <div class="cta">
       <a class="btn primary console-link" href="app/">Open the console</a>
-      <a class="btn" href="#how">How it works</a>
+      <a class="btn" href="#problem">The problem</a>
     </div>
-    <p class="fine console-alt">Checking for a local CapAuth server on port 8000.</p>
-    <p class="fine">Runs as an MCP server in front of Claude Code.</p>
+    <p class="fine console-alt">Hosted replays of real runs. Running CapAuth locally? <a href="http://localhost:8000/">Open the live console</a> on port 8000.</p>
   </div>
   <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: a manager agent delegates one capability to a worker agent.</figcaption></figure>
 </div></section>
