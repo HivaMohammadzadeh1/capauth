@@ -38,6 +38,11 @@ def main() -> None:
     (OUT / "api" / "recordings.json").write_text(json.dumps(recs))
     for name in recs:
         (OUT / "api" / "recordings" / f"{name}.json").write_text(json.dumps(get(f"/recordings/{name}")))
+        try:
+            (OUT / "api" / "recordings" / name).mkdir(exist_ok=True)
+            (OUT / "api" / "recordings" / name / "audit.json").write_text(json.dumps(get(f"/recordings/{name}/audit")))
+        except Exception:
+            pass
     shutil.copy(ROOT / "ui" / "logo.svg", OUT / "logo.svg")
 
     html = (ROOT / "ui" / "index.html").read_text()

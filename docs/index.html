@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CapAuth, capability authorization for AI agents</title>
 <meta name="description" content="CapAuth gives an AI agent a short-lived lease with only the capabilities its task needs, checks every tool call against it in code, and writes a hash-chained audit log. Runs as an MCP server in front of Claude Code.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -20,7 +21,7 @@ a:hover{text-decoration:underline}
 header.nav{position:sticky; top:0; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); z-index:10}
 header.nav .wrap{display:flex; align-items:center; gap:22px; height:60px}
 .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--ink)}
-.brand i{width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block}
+.brand img{width:26px; height:26px; display:block}
 .nav a.l{color:var(--ink-2); font-size:15px}
 .nav .sp{flex:1}
 .btn{display:inline-block; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 16px; font-weight:600; font-size:15px}
@@ -78,7 +79,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 <body>
 
 <header class="nav"><div class="wrap">
-  <a class="brand" href="#"><i></i>CapAuth</a>
+  <a class="brand" href="#"><img src="site/brand/mark.svg" alt="" width="26" height="26">CapAuth</a>
   <a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
   <a class="btn console-link" href="app/">Open the console</a>

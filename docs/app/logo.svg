@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" style="color:#2451B2" role="img" aria-label="CapAuth logo">
-  <title>CapAuth</title>
-  <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="4" opacity="0.4"/>
-  <path d="M46.74 21.67 A18 18 0 0 1 46.74 42.33 L37.73 36.02 A7 7 0 0 0 37.73 27.98 Z" fill="currentColor"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CapAuth"><rect width="64" height="64" rx="14" fill="#2451B2"/><circle cx="32.0" cy="32.0" r="17" fill="none" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="6"/><circle cx="32.0" cy="32.0" r="17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-dasharray="80.11 106.81" transform="rotate(-90 32.0 32.0)"/><rect x="26.5" y="26.5" width="11" height="11" rx="2.5" fill="#FFFFFF"/></svg>

@@ -103,6 +103,7 @@ async def start(body: StartRun):
             RECORDINGS.mkdir(exist_ok=True)
             name = f"{run.scenario.id}-{'on' if run.scope_enabled else 'off'}"
             (RECORDINGS / f"{name}.json").write_text(json.dumps(run.events))
+            (RECORDINGS / f"{name}-audit.json").write_text(json.dumps(run.audit()))
 
     asyncio.create_task(go())
     return {"run_id": run.run_id}
@@ -110,7 +111,15 @@ async def start(body: StartRun):
 
 @app.get("/api/recordings")
 async def recordings():
-    return sorted(p.stem for p in RECORDINGS.glob("*.json")) if RECORDINGS.exists() else []
+    return sorted(p.stem for p in RECORDINGS.glob("*.json") if not p.stem.endswith("-audit")) if RECORDINGS.exists() else []
+
+
+@app.get("/api/recordings/{name}/audit")
+async def recording_audit(name: str):
+    p = RECORDINGS / f"{name}-audit.json"
+    if not p.exists() or "/" in name:
+        raise HTTPException(404, "no audit saved for that recording")
+    return JSONResponse(json.loads(p.read_text()))
 
 
 @app.get("/api/recordings/{name}")

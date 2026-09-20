@@ -16,7 +16,7 @@ SIZE = {"width": 1440, "height": 900}
 
 CARD_CSS = ("<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;800&display=swap'>"
             "<style>body{margin:0;background:#F3F4F6;color:#1B2430;width:1440px;height:900px;font-family:'Public Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center}"
-            ".card{width:1100px}.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:26px;margin-bottom:42px}.brand i{width:26px;height:26px;border-radius:7px;background:#2451B2;display:inline-block}"
+            ".card{width:1100px}.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:26px;margin-bottom:42px}.brand svg{display:block}"
             ".brand small{font-weight:400;color:#66707E;font-size:16px;margin-left:8px}h1{font-size:54px;font-weight:800;letter-spacing:-0.02em;line-height:1.12;margin:0 0 22px}"
             "p{font-size:26px;color:#3C4757;line-height:1.45;margin:0;max-width:60ch}.tag{display:inline-block;margin-top:28px;font-size:18px;font-weight:600;color:#8A5A00;background:#FFF3D1;border:1px solid #F1DDA2;border-radius:999px;padding:6px 16px}"
             ".tag.live{color:#136C3A;background:#E1F5E9;border-color:#BFE5CF}.foot{margin-top:46px;color:#66707E;font-size:18px}</style>")
@@ -32,7 +32,7 @@ def card_html(title: str) -> str:
     elif "live" in low:
         tag = "<span class='tag live'>Live run, Claude Code</span>"
     sub_html = f"<p>{html.escape(sub)}</p>" if sub else ""
-    return ("<html><head>" + CARD_CSS + "</head><body><div class='card'><div class='brand'><i></i>CapAuth<small>Capability authorization for AI agents</small></div>"
+    return ("<html><head>" + CARD_CSS + "</head><body><div class='card'><div class='brand'><svg width="30" height="30" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CapAuth"><rect width="64" height="64" rx="14" fill="#2451B2"/><circle cx="32.0" cy="32.0" r="17" fill="none" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="6"/><circle cx="32.0" cy="32.0" r="17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-dasharray="80.11 106.81" transform="rotate(-90 32.0 32.0)"/><rect x="26.5" y="26.5" width="11" height="11" rx="2.5" fill="#FFFFFF"/></svg>CapAuth<small>Capability authorization for AI agents</small></div>"
             f"<h1>{html.escape(head)}</h1>{sub_html}{tag}<div class='foot'>github.com/HivaMohammadzadeh1/capauth</div></div></body></html>")
 
 

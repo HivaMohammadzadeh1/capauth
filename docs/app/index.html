@@ -159,7 +159,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
 <body>
 
 <aside class="side">
-  <div class="brand"><img src="logo.svg" alt="" width="24" height="24"><div>CapAuth<small>Capability authorization</small></div></div>
+  <div class="brand"><img src="logo.svg" alt="" width="26" height="26"><div>CapAuth<small>Capability authorization</small></div></div>
   <nav class="nav">
     <a href="#" id="navRuns" class="active">Runs</a>
     <a href="#" id="navPolicies">Policies</a>
@@ -234,7 +234,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
     </section>
 
     <section class="card drawer" id="audit">
-      <div class="audit-head"><h2>Audit ledger</h2><span class="badge" id="chainBadge">-</span><span style="flex:1"></span><button class="btn" id="refreshAudit">Load this run's ledger</button><button class="btn" id="downloadBtn">Download JSON</button><button class="btn" id="closeAudit">Back to runs</button></div>
+      <div class="audit-head"><h2>Audit ledger</h2><span class="hint" id="auditLabel"></span><span class="badge" id="chainBadge">-</span><span style="flex:1"></span><button class="btn" id="refreshAudit">Reload</button><button class="btn" id="downloadBtn">Download JSON</button><button class="btn" id="closeAudit">Back to runs</button></div>
       <div style="overflow-x:auto"><table id="auditTable"></table></div>
     </section>
   </div>
@@ -872,7 +872,8 @@ $("runBtn").addEventListener("click", runTask);
 $("exportBtn").addEventListener("click", exportAudit);
 $("replayBtn").addEventListener("click", replayRun);
 $("downloadBtn").addEventListener("click", () => {
-  if(current && current.serverRun) window.open("/api/runs/" + current.run_id + "/audit", "_blank");
+  const u = $("downloadBtn").dataset.url || (current && current.serverRun ? "/api/runs/" + current.run_id + "/audit" : null);
+  if(u) window.open(u, "_blank");
 });
 $("closeAudit").addEventListener("click", () => $("audit").classList.remove("open"));
 $("scenario").addEventListener("change", () => {
@@ -940,7 +941,26 @@ setInterval(loadRecentRuns, 8000);
   }
   $("navRuns").addEventListener("click", (e) => { e.preventDefault(); setActive("navRuns"); view(""); });
   $("navPolicies").addEventListener("click", (e) => { e.preventDefault(); openPolicies(); });
-  const loadAudit = () => { if(!$("exportBtn").disabled) $("exportBtn").click(); else if(!$("auditTable").innerHTML) $("auditTable").innerHTML = '<tr><td class="hint">Run a task first, then its ledger appears here.</td></tr>'; };
+  const loadAudit = async () => {
+    const t = $("auditTable"), badge = $("chainBadge");
+    let url = null, label = "";
+    if(current && /^run_/.test(current.run_id)){ url = "/api/runs/" + current.run_id + "/audit"; label = "run " + current.run_id.replace("run_", ""); }
+    else if(current && /^rec:/.test(current.run_id)){ url = "/api/recordings/" + current.run_id.slice(4) + "/audit"; label = "recording " + current.run_id.slice(4); }
+    else{
+      try{ const runs = await (await fetch("/api/runs")).json(); if(runs.length){ const r = runs[runs.length - 1]; url = "/api/runs/" + r.run_id + "/audit"; label = "latest run " + r.run_id.replace("run_", ""); } }catch(e){}
+    }
+    if(!url){ t.innerHTML = '<tr><td class="hint">Run a task first, then its ledger appears here.</td></tr>'; badge.textContent = "-"; badge.className = "badge"; $("auditLabel").textContent = ""; return; }
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(res.status);
+      renderAudit(await res.json());
+      $("auditLabel").textContent = "Ledger for " + label;
+      $("downloadBtn").dataset.url = url;
+    }catch(e){
+      t.innerHTML = '<tr><td class="hint">No ledger is saved for this replay. Run the task live, or pick a run from Recent runs.</td></tr>';
+      badge.textContent = "-"; badge.className = "badge"; $("auditLabel").textContent = "";
+    }
+  };
   $("navAudit").addEventListener("click", (e) => { e.preventDefault(); setActive("navAudit"); view("audit"); loadAudit(); });
   $("refreshAudit").addEventListener("click", loadAudit);
   $("closePolicies").addEventListener("click", () => { setActive("navRuns"); view(""); });

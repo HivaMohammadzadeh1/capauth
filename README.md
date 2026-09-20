@@ -1,3 +1,5 @@
+<img src="docs/site/brand/wordmark.svg" alt="CapAuth" width="280">
+
 # CapAuth, Capability Authorization
 
 Website: https://hivam.org/capauth/
