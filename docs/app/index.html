@@ -119,6 +119,19 @@ select{display:none}
 .tbl td.why{color:var(--ink-2)}
 .tbl tr.d-deny td.why{color:var(--deny)}
 .tbl tr.child td.call{padding-left:28px}
+/* delegation: a worker sub-thread reads as one violet lane */
+.tbl tr.deleg td, .tbl tr.child td, .tbl tr.worker td{background:color-mix(in srgb, var(--approval) 6%, transparent)}
+.tbl tr.deleg td:first-child, .tbl tr.child td:first-child, .tbl tr.worker td:first-child, .tbl tr.deleg-end td:first-child{box-shadow:inset 3px 0 0 var(--approval)}
+.tbl tr.deleg-end td{background:color-mix(in srgb, var(--approval) 6%, transparent)}
+.tbl tr.worker td{padding-left:28px}
+.hop{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
+.hop .node{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:12.5px; color:var(--ink)}
+.hop .node .who{color:var(--muted); font-size:11.5px; margin-left:4px}
+.hop .arw{color:var(--approval); font-weight:700}
+.capchips{margin-top:7px; display:flex; flex-wrap:wrap; gap:5px}
+.capchip{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:11px; color:var(--approval); background:color-mix(in srgb, var(--approval) 12%, transparent); border-radius:6px; padding:1px 7px}
+.wpill{display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--approval); background:color-mix(in srgb, var(--approval) 14%, transparent); border-radius:999px; padding:1px 8px; margin-right:8px; vertical-align:middle}
+.tbl tr.deleg-end td.call{color:var(--approval); font-size:12.5px}
 .prov{color:var(--muted); font-size:12.5px; margin-top:2px}
 .notice{background:var(--limited-bg); border:1px solid #F1DDA2; border-radius:8px; padding:10px 12px; font-size:13.5px}
 .notice.err{background:var(--deny-bg); border-color:#E9B8B8; color:var(--deny)}
@@ -545,6 +558,7 @@ function onLease(d){
   $("leaseCard").classList.remove("empty");
   setStatus("Running", "b-allow_limited");
   current.leaseId = lease.lease_id;
+  current.principal = lease.principal || "";
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
   current.expiresMs = Date.parse(lease.expires_at);
@@ -586,17 +600,28 @@ function renderCaps(lease, excluded){
 function onDelegated(d){
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
-  const caps = (d.lease && d.lease.capabilities || []).map((c) => c.tool + "." + c.action + " on " + c.resource);
+  const childCaps = (d.lease && d.lease.capabilities) || [];
+  const childPrincipal = stripId((d.lease && d.lease.principal) || "worker");
+  const managerName = stripId(current.principal || "manager");
+  const managerId = current.leaseId || d.parent_lease_id || "";
+  const chips = childCaps.map((c) => '<span class="capchip" title="' + esc(c.resource) + '">' + esc(c.tool + "." + c.action) + "</span>").join("");
+  const n = childCaps.length;
   const row = document.createElement("tr"); row.className = "row deleg";
-  row.innerHTML = '<td class="t"></td><td><span class="badge b-approval">Delegated</span></td><td class="call">Worker lease <span class="mono">' + esc(d.lease_id) +
-    '</span> issued under <span class="mono">' + esc(d.parent_lease_id) + "</span>, " + caps.length + (caps.length === 1 ? " capability" : " capabilities") +
-    '</td><td class="why">' + esc(caps.join(", ")) + '<div class="prov">' + esc(d.task || "") + "</div></td>";
+  row.innerHTML = '<td class="t"></td><td><span class="badge b-approval">Delegated</span></td>' +
+    '<td class="call"><div class="hop">' +
+      '<span class="node">' + esc(managerName) + '<span class="who">' + esc(managerId) + "</span></span>" +
+      '<span class="arw">→</span>' +
+      '<span class="node">' + esc(childPrincipal) + '<span class="who">' + esc(d.lease_id) + "</span></span>" +
+    "</div>" +
+    (chips ? '<div class="capchips">' + chips + "</div>" : "") + "</td>" +
+    '<td class="why">' + (n === 1 ? "1 capability handed down, a strict subset" : n + " capabilities handed down, a strict subset") +
+    (d.task ? '<div class="prov">' + esc(d.task) + "</div>" : "") + "</td>";
   led.appendChild(row); row.scrollIntoView({block:"nearest"});
 }
 
 function onDecision(d){
   if(!d.depth) markStep(d.tool, d.action, d.decision);
-  const nd = document.querySelectorAll("#ledger tr.row:not(.deleg)").length + (current.rows.has((d.lease_id || "") + ":" + d.seq) ? 0 : 1);
+  const nd = document.querySelectorAll("#ledger tr.row:not(.deleg):not(.deleg-end)").length + (current.rows.has((d.lease_id || "") + ":" + d.seq) ? 0 : 1);
   $("decCount").textContent = "(" + nd + ")";
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
@@ -605,7 +630,7 @@ function onDecision(d){
   let why = esc(d.reason || "");
   if(d.decision === "ALLOW_LIMITED" && d.narrowed_to) why += " (narrowed to " + esc(d.narrowed_to) + ")";
   if(d.provenance) why += '<div class="prov">' + esc(d.provenance) + "</div>";
-  const who = d.depth ? '<span class="badge b-approval">worker ' + esc(d.lease_id || "") + "</span> " : "";
+  const who = d.depth ? '<span class="wpill" title="worker lease ' + esc(d.lease_id || "") + '">worker</span>' : "";
   const inner = '<td class="t">' + esc(hms(d.at)) + '</td><td><span class="badge b-' + String(d.decision).toLowerCase() + '">' + label + "</span></td>" +
     '<td class="call">' + who + '<span class="mono" title="' + esc(d.call_str) + '">' + esc(shortCall(d)) + "</span></td><td class=\"why\">" + why + "</td>";
   const key = (d.lease_id || "") + ":" + d.seq;
@@ -621,7 +646,7 @@ function onDecision(d){
 function onInjection(d){
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
-  const row = document.createElement("tr"); row.className = "note";
+  const row = document.createElement("tr"); row.className = "note" + (d.depth ? " worker" : "");
   row.innerHTML = '<td colspan="4"><div class="notice"><b>Instruction found in a tool result</b> from ' + esc(d.source) + '. The agent reads it as data. It is not part of the task.<div class="q">' + esc(d.text) + "</div></div></td>";
   led.appendChild(row); row.scrollIntoView({block:"nearest"});
 }
@@ -665,7 +690,7 @@ function onApprovalResolved(d){
 
 function onAgentMessage(d){
   const led = $("ledger");
-  const row = document.createElement("tr"); row.className = "note";
+  const row = document.createElement("tr"); row.className = "note" + (d.depth ? " worker" : "");
   const who = d.depth ? "Worker report" : "Agent report";
   row.innerHTML = '<td colspan="4"><div class="report"><b>' + who + '</b><div class="txt">' + esc(d.text) + '</div><button class="linkbtn" type="button">Show all</button></div></td>';
   const box = row.querySelector(".report"), btn = row.querySelector(".linkbtn");
@@ -674,7 +699,18 @@ function onAgentMessage(d){
 }
 
 function onRevoked(d){
-  if(!d || !d.depth){ stage("end", (d && d.reason === "expired") ? "TTL ran out" : "revoked at task end"); }
+  if(d && d.depth){
+    // a worker's lease ended, not the run's lease. Close the lane, leave the manager ring running.
+    const led = $("ledger");
+    const first = led.querySelector(".empty"); if(first) first.remove();
+    const row = document.createElement("tr"); row.className = "row deleg-end";
+    row.innerHTML = '<td class="t"></td><td><span class="badge b-approval">Returned</span></td>' +
+      '<td class="call">Worker <span class="mono">' + esc(d.lease_id || "") + "</span> finished, its lease revoked</td>" +
+      '<td class="why">authority returns to the manager</td>';
+    led.appendChild(row); row.scrollIntoView({block:"nearest"});
+    return;
+  }
+  stage("end", (d && d.reason === "expired") ? "TTL ran out" : "revoked at task end");
   current.revoked = true;
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
   greyRing(d && d.reason === "expired" ? "expired" : "revoked");
