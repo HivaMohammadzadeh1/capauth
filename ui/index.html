@@ -49,7 +49,7 @@ select{display:none}
 .toolbar{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .field{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
 .selectbox{position:relative}
-.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:300px; max-width:440px}
+.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:260px; max-width:380px}
 .selectbox::after{content:""; position:absolute; right:12px; top:50%; width:8px; height:8px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-70%) rotate(45deg); pointer-events:none}
 .btn{border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 14px; font-size:14px; font-weight:500; cursor:pointer}
 .btn:hover{background:var(--bg)}
@@ -321,7 +321,8 @@ async function loadScenarios(){
       const o = document.createElement("option");
       o.value = s.id;
       o.dataset.agent = s.agent || "";
-      o.textContent = (s.agent || "agent") + ": " + s.title;
+      const short = {"file-issue": "File the payment bug", "support": "Customer support", "ai-org": "AI organization", "fix-deploy": "Fix and deploy"};
+      o.textContent = (s.agent || "agent") + ": " + (short[s.id] || s.title);
       o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of; o.dataset.title = s.title;
       sel.appendChild(o);
     });
@@ -420,7 +421,7 @@ function shortCall(d){
     const a = CALL_ARGS[(d.lease_id || "") + ":" + d.seq] || {};
     const caps = (a.capabilities || []).length;
     const task = String(a.task || "");
-    return "scope.delegate(" + caps + (caps === 1 ? " capability" : " capabilities") + ", task: \"" + task.slice(0, 70) + (task.length > 70 ? "..." : "") + "\")";
+    return "capauth.delegate(" + caps + (caps === 1 ? " capability" : " capabilities") + ", task: \"" + task.slice(0, 70) + (task.length > 70 ? "..." : "") + "\")";
   }
   const s = String(d.call_str || "");
   return s.length > 150 ? s.slice(0, 147) + "...)" : s;
