@@ -13,6 +13,65 @@ from playwright.async_api import async_playwright, expect
 
 HERE = Path(__file__).resolve().parent
 SIZE = {"width": 1440, "height": 900}
+
+CARD_CSS = ("<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;800&display=swap'>"
+            "<style>body{margin:0;background:#F3F4F6;color:#1B2430;width:1440px;height:900px;font-family:'Public Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center}"
+            ".card{width:1100px}.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:26px;margin-bottom:42px}.brand i{width:26px;height:26px;border-radius:7px;background:#2451B2;display:inline-block}"
+            ".brand small{font-weight:400;color:#66707E;font-size:16px;margin-left:8px}h1{font-size:54px;font-weight:800;letter-spacing:-0.02em;line-height:1.12;margin:0 0 22px}"
+            "p{font-size:26px;color:#3C4757;line-height:1.45;margin:0;max-width:60ch}.tag{display:inline-block;margin-top:28px;font-size:18px;font-weight:600;color:#8A5A00;background:#FFF3D1;border:1px solid #F1DDA2;border-radius:999px;padding:6px 16px}"
+            ".tag.live{color:#136C3A;background:#E1F5E9;border-color:#BFE5CF}.foot{margin-top:46px;color:#66707E;font-size:18px}</style>")
+
+
+def card_html(title: str) -> str:
+    """A title card in the product style. 'Title | subtitle' splits into a headline and a line under it."""
+    head, _, sub = title.partition(" | ")
+    tag = ""
+    low = title.lower()
+    if "simulated" in low:
+        tag = "<span class='tag'>Simulated agent, labeled on screen</span>"
+    elif "live" in low:
+        tag = "<span class='tag live'>Live run, Claude Code</span>"
+    sub_html = f"<p>{html.escape(sub)}</p>" if sub else ""
+    return ("<html><head>" + CARD_CSS + "</head><body><div class='card'><div class='brand'><i></i>CapAuth<small>Capability authorization for AI agents</small></div>"
+            f"<h1>{html.escape(head)}</h1>{sub_html}{tag}<div class='foot'>github.com/HivaMohammadzadeh1/capauth</div></div></body></html>")
+
+
+CAPTION_JS = r"""
+(() => {
+  if (window.__capauthCaption) return;
+  window.__capauthCaption = true;
+  window.REPLAY_MS = 1100;
+  const bar = document.createElement('div');
+  bar.id = 'capauthCaption';
+  bar.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);max-width:1100px;padding:14px 22px;border-radius:12px;background:rgba(27,36,48,.94);color:#fff;font:500 20px/1.4 "Public Sans",system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .25s';
+  document.body.appendChild(bar);
+  let hide = null;
+  const show = (text, color) => { bar.innerHTML = (color ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + color + ';margin-right:10px;vertical-align:middle"></span>' : '') + text; bar.style.opacity = '1'; clearTimeout(hide); hide = setTimeout(() => bar.style.opacity = '0', 6000); };
+  const C = {ALLOW:'#3ED2A6', ALLOW_LIMITED:'#F2B44A', HUMAN_APPROVAL:'#A78BFA', DENY:'#FF6B6B'};
+  const short = (s) => String(s || '').split('(')[0];
+  const orig = window.handle;
+  window.handle = function(t, d){
+    orig(t, d);
+    try {
+      if (t === 'run_started') show('Task started for ' + String(d.agent || '').replace('agent:', '') + ', acting for ' + String(d.on_behalf_of || '').replace('user:', ''));
+      else if (t === 'plan') show('The agent wrote its plan: ' + (d.steps || []).length + ' steps, before any tool call');
+      else if (t === 'lease_issued') { const n = (d.lease && d.lease.capabilities || []).length; show('CapAuth issued lease ' + d.lease.lease_id + ': ' + n + (n === 1 ? ' capability' : ' capabilities') + ', ' + Math.round((d.lease.ttl_seconds || 600) / 60) + ' minutes. Everything else stays off.', '#2451B2'); }
+      else if (t === 'lease_delegated') show('Worker lease ' + d.lease_id + ' issued as a strict subset of ' + d.parent_lease_id, '#A78BFA');
+      else if (t === 'decision') {
+        const who = d.depth ? 'Worker: ' : '';
+        if (d.decision === 'ALLOW') show(who + 'Allowed: ' + short(d.call_str) + ' is inside the lease', C.ALLOW);
+        else if (d.decision === 'ALLOW_LIMITED') show(who + 'Narrowed: ' + short(d.call_str) + ' asked for more than the lease holds, so it runs on ' + (d.narrowed_to || 'the leased resource'), C.ALLOW_LIMITED);
+        else if (d.decision === 'HUMAN_APPROVAL') show(who + 'Waiting for a person: ' + short(d.call_str) + ' is sensitive under policy', C.HUMAN_APPROVAL);
+        else if (d.decision === 'DENY') show(who + 'Denied: ' + short(d.call_str) + '. ' + String(d.reason || '').split('.')[0], C.DENY);
+      }
+      else if (t === 'injection_seen') show('An instruction inside a tool result asks the agent to do something the task never did. CapAuth does not detect it. The lease makes it unreachable.', '#FF6B6B');
+      else if (t === 'approval_resolved') show('Approved by the operator, recorded in the ledger', C.HUMAN_APPROVAL);
+      else if (t === 'lease_revoked' && !d.depth) show('Task ended. Lease revoked, ' + (d.reason === 'expired' ? 'TTL ran out' : 'early') + '.', '#2451B2');
+      else if (t === 'run_finished') show((d.status === 'complete' ? 'Complete. ' : 'Ended. ') + (d.decisions || 0) + ' decisions on a hash chain a reviewer can verify.', '#2451B2');
+    } catch (e) {}
+  };
+})();
+"""
 TITLES = {
     "before": "Before: the agent holds the user's full tokens",
     "after": "After: the agent holds a task-scoped lease from Scope",
@@ -24,14 +83,7 @@ async def title_cards(browser):
     try:
         page = await context.new_page()
         for name, title in TITLES.items():
-            await page.set_content(
-                '<html><body style="margin:0;background:#0B1017;color:white;'
-                'width:1440px;height:900px;display:flex;align-items:center;'
-                'justify-content:center;font-family:Arial,sans-serif">'
-                '<div style="max-width:1160px;text-align:center;font-size:52px;'
-                'font-weight:600;line-height:1.3">'
-                + html.escape(title) + "</div></body></html>"
-            )
+            await page.set_content(card_html(title))
             await page.screenshot(path=str(HERE / f"{name}-title.png"))
     finally:
         await context.close()
@@ -141,7 +193,7 @@ async def single_capture(args):
                     'width:1440px;height:900px;display:flex;align-items:center;justify-content:center;'
                     'font-family:Arial,sans-serif"><div style="max-width:1190px;text-align:center;'
                     'font-size:48px;font-weight:600;line-height:1.35">'
-                    + html.escape(args.title) + '</div></body></html>')
+                    + args.title + '</div></body></html>')
                 await title_page.screenshot(path=str(HERE / f"{name}-title.png"))
                 await title_context.close()
             if args.title_only:
@@ -153,6 +205,7 @@ async def single_capture(args):
             video = page.video
             await page.goto(args.url, wait_until="domcontentloaded")
             await page.wait_for_function("s => !!document.querySelector('#scenario option[value=\"' + s + '\"]')", arg=args.scenario)
+            await page.evaluate(CAPTION_JS)
             await page.locator("#scenario").select_option(args.scenario)
             enabled = args.scope == "on"
             if await page.locator("#scopeToggle").is_checked() != enabled:

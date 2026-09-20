@@ -844,7 +844,7 @@ function playEvents(events, key, meta){
     }
     const ev = events[i++];
     handle(ev.event, ev.data);   // replay auto-resolves approvals from the recording
-    replayTimer = setTimeout(feed, 400);
+    replayTimer = setTimeout(feed, window.REPLAY_MS || 400);
   };
   feed();
 }
