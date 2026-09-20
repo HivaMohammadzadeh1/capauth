@@ -49,7 +49,7 @@ select{display:none}
 .toolbar{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .field{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
 .selectbox{position:relative}
-.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:260px; max-width:380px}
+.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:240px; max-width:340px}
 .selectbox::after{content:""; position:absolute; right:12px; top:50%; width:8px; height:8px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-70%) rotate(45deg); pointer-events:none}
 .btn{border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 14px; font-size:14px; font-weight:500; cursor:pointer}
 .btn:hover{background:var(--bg)}
@@ -142,6 +142,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
 #auditTable th,#auditTable td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
 #auditTable th{color:var(--muted); font-weight:600; background:#FAFBFC}
 .hash{color:var(--muted)}
+@media (max-width:1400px){.toolbar .field{display:none}}
 @media (max-width:1100px){.content{grid-template-columns:1fr} .side{display:none}}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
