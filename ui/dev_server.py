@@ -34,6 +34,20 @@ SCENARIOS = [
         "on_behalf_of": "hiva@acme.com",
     },
     {
+        "id": "support",
+        "title": "Customer support: help one customer",
+        "task": "Read the open conversation with customer 1001, look up their record, resolve the late-order issue, and reply to them.",
+        "agent": "support-agent",
+        "on_behalf_of": "support-lead@acme.com",
+    },
+    {
+        "id": "ai-org",
+        "title": "AI organization: manager delegates to a worker",
+        "task": "Delegate reading Slack thread 18291 in #payments to a worker agent with only what it needs, then file the incident summary as an issue in acme/payments-api.",
+        "agent": "ai-manager",
+        "on_behalf_of": "hiva@acme.com",
+    },
+    {
         "id": "fix-deploy",
         "title": "Fix and deploy the payment bug",
         "task": "Fix the payment retry bug and deploy it by merging the pull request.",
@@ -90,12 +104,15 @@ def stamp(run: dict, event: str, data: dict) -> dict:
     counts down against real wall-clock times."""
     data = dict(data)
     data["run_id"] = run["run_id"]
-    lease_id = run["lease_id"]
-    if "lease_id" in data:
-        data["lease_id"] = lease_id
-    if isinstance(data.get("lease"), dict):
+    # delegation fixtures carry two leases (manager + worker); keep their ids intact
+    preserve = run.get("preserve_leases")
+    if "lease_id" in data and not preserve:
+        data["lease_id"] = run["lease_id"]
+    # only the primary lease drives the ring; re-stamp its times to now
+    if event == "lease_issued" and isinstance(data.get("lease"), dict):
         lease = dict(data["lease"])
-        lease["lease_id"] = lease_id
+        if not preserve:
+            lease["lease_id"] = run["lease_id"]
         ttl = int(lease.get("ttl_seconds") or 600)
         issued = datetime.now(timezone.utc).replace(microsecond=0)
         lease["issued_at"] = issued.isoformat().replace("+00:00", "Z")
@@ -112,7 +129,7 @@ def stamp(run: dict, event: str, data: dict) -> dict:
         data["model"] = run.get("model", CONFIG["default_model"])
     if event == "decision":
         data["at"] = now_iso()
-        run["decision_seqs"].add(data.get("seq"))
+        run["decision_seqs"].add((data.get("lease_id"), data.get("seq")))
     if event == "approval_resolved":
         data["at"] = now_iso()
     if event == "lease_revoked":
@@ -215,7 +232,7 @@ async def drive_run(run: dict) -> None:
             if event == "tool_call":
                 run["tool_calls"][data.get("seq")] = data
 
-            if event == "injection_seen":
+            if event == "injection_seen" and run.get("scenario_id") == "file-issue":
                 variant = run.get("injection_variant")
                 if variant in INJECTION_VARIANTS:
                     data["text"] = INJECTION_VARIANTS[variant]
@@ -403,18 +420,22 @@ async def start_run(req: Request) -> JSONResponse:
         return JSONResponse({"error": f"unknown scenario {scenario_id}"}, status_code=404)
 
     run_id = "run_" + uuid.uuid4().hex[:8]
-    lease_id = "sc_" + uuid.uuid4().hex[:4]
+    # delegation fixtures carry two leases; keep the fixture ids so parent/child links hold
+    preserve_leases = any(item["event"] == "lease_delegated" for item in fixture)
     lease_obj = None
     for item in fixture:
         if item["event"] == "lease_issued":
             lease_obj = dict(item["data"]["lease"])
-            lease_obj["lease_id"] = lease_id
             break
+    lease_id = lease_obj["lease_id"] if (preserve_leases and lease_obj) else "sc_" + uuid.uuid4().hex[:4]
+    if lease_obj and not preserve_leases:
+        lease_obj["lease_id"] = lease_id
 
     run = {
         "run_id": run_id,
         "lease_id": lease_id,
         "lease_obj": lease_obj,
+        "preserve_leases": preserve_leases,
         "scenario_id": scenario_id,
         "scope_enabled": scope_enabled,
         "model": model,
