@@ -80,7 +80,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <header class="nav"><div class="wrap">
   <a class="brand" href="#"><img src="site/brand/mark.svg" alt="" width="26" height="26">CapAuth</a>
-  <a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
+  <a class="l" href="#problem">Problem</a><a class="l" href="#fix">Fix</a><a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
   <a class="btn console-link" href="app/">Open the console</a>
   <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
@@ -88,9 +88,11 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <section class="hero"><div class="wrap hero-grid">
   <div>
-    <div class="kicker">Capability authorization for AI agents</div>
-    <h1>A lease for one task, not a token for everything.</h1>
-    <p class="lede">An agent runs with its user's full access. Its task needs a few capabilities. CapAuth issues a short-lived lease with only those, checks every tool call against it in code, and writes a hash-chained log.</p>
+    <div class="kicker">The problem</div>
+    <h1>An AI agent holds every key its user has.</h1>
+    <p class="lede">Its task needs three capabilities. It holds forty, for months, and anything it reads can try to use the rest. That is why nine in ten agent pilots stall before production, most of them in security review.</p>
+    <div class="kicker" style="margin-top:26px">The fix</div>
+    <p class="lede"><b>CapAuth</b> issues a short-lived lease with only what the task needs, checks every tool call against it in code, and writes a log a reviewer can verify. A lease for one task, not a token for everything.</p>
     <div class="cta">
       <a class="btn primary console-link" href="app/">Open the console</a>
       <a class="btn" href="#how">How it works</a>
@@ -102,9 +104,9 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 </div></section>
 
 <section id="problem"><div class="wrap">
-  <div class="kicker">Why this exists</div>
-  <h2>Agents stall in security review.</h2>
-  <p class="lede">Nine in ten agent pilots never reach production. Most stall after the pilot, in security review. The agent holds its user's standing access, and a review cannot sign off on that.</p>
+  <div class="kicker">The problem in detail</div>
+  <h2>Standing access is what a security review cannot sign.</h2>
+  <p class="lede">The agent holds its user's tokens: read every channel, push and merge, read and share every file, email anyone. Those grants do not depend on the task, and they do not expire.</p>
   <figure style="margin-top:28px"><img src="diagrams/motivation.svg" alt="One agent holds every key its user has; the task needs three; a thread it reads asks it to export customer data"><figcaption>The task needs three capabilities. The agent holds every key its user has, and anything it reads can try to use the rest.</figcaption></figure>
   <div class="grid" style="margin-top:28px">
     <div class="card"><h3>Non-human identities outnumber people</h3><p>Agents multiply them. Classic access control assumes an actor whose permissions do not depend on a decision it has not made yet.</p></div>
@@ -112,6 +114,17 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <div class="card"><h3>Logging is now a legal duty</h3><p>EU AI Act high-risk obligations for logging and human oversight took effect in August 2026. What counts as a sufficient agent audit log is not yet specified.</p></div>
   </div>
   <p style="margin-top:18px; font-size:14px; color:var(--muted)">Figures from the AGI House Enterprise Deployment primer, Layer 7.</p>
+</div></section>
+
+<section id="fix"><div class="wrap">
+  <div class="kicker">The fix</div>
+  <h2>A lease for one task, not a token for everything.</h2>
+  <div class="grid">
+    <div class="card"><h3>Scoped to the task</h3><p>The lease holds only the capabilities the agent's plan needs: this channel, this repo, this customer. Nothing else is there to misuse.</p></div>
+    <div class="card"><h3>Short-lived</h3><p>Ten minutes by default, revoked the moment the task ends. There is no standing access left behind.</p></div>
+    <div class="card"><h3>Enforced in code</h3><p>Every tool call is checked against the lease by a deterministic gate. The model proposes; the code decides.</p></div>
+    <div class="card"><h3>Logged for review</h3><p>Every decision lands in a hash-chained ledger with who, for whom, what, why, and when.</p></div>
+  </div>
 </div></section>
 
 <section id="how"><div class="wrap">
