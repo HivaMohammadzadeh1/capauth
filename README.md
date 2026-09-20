@@ -4,7 +4,7 @@
 
 Website: https://hivam.org/capauth/
 
-A lease for one task instead of a token for everything. Task-scoped permissions for AI agents.
+Per-task leases for AI agents instead of standing tokens.
 
 An agent should not get everything its user can reach. CapAuth reads the task and the
 agent's own plan, issues a short-lived signed lease that holds only the capabilities

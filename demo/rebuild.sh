@@ -14,7 +14,7 @@ T3A='After: the same agent holds a lease from CapAuth | The export and the email
 $R --title-only --out enterprise-2-ai-org --title "$T1"
 $R --title-only --out enterprise-2-ai-org-before --title "$T1B"
 $R --title-only --out enterprise-1-support --title "$T2"
-$R --title-only --out capauth-end --title "A lease for one task, not a token for everything | Capability authorization for AI agents. Runs as an MCP server in front of Claude Code today."
+$R --title-only --out capauth-end --title "Per-task leases for AI agents | Capability authorization. Runs as an MCP server in front of Claude Code."
 $R --scenario ai-org --mode live --scope on --out enterprise-2-ai-org-live --title "$T1L" --record-only
 $R --scenario support --mode replay --recording support-off-simulated --scope off --out enterprise-1-support-before --title "$T2B" --record-only
 $R --scenario support --mode replay --recording support-on-simulated --scope on --out enterprise-1-support-after --title "$T2A" --record-only

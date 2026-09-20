@@ -89,16 +89,16 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 <section class="hero"><div class="wrap hero-grid">
   <div>
     <div class="kicker">The problem</div>
-    <h1>An AI agent holds every key its user has.</h1>
-    <p class="lede">Its task needs three capabilities. It holds forty, for months, and anything it reads can try to use the rest. That is why nine in ten agent pilots stall before production, most of them in security review.</p>
+    <h1>AI agents run with their user's full access.</h1>
+    <p class="lede">A task that needs three permissions gets tokens for everything, valid for months. Anything the agent reads can use them. Nine in ten agent pilots stall before production, many in security review.</p>
     <div class="kicker" style="margin-top:26px">The fix</div>
-    <p class="lede"><b>CapAuth</b> issues a short-lived lease with only what the task needs, checks every tool call against it in code, and writes a log a reviewer can verify. A lease for one task, not a token for everything.</p>
+    <p class="lede"><b>CapAuth</b> issues a signed lease per task: the capabilities the plan needs, for ten minutes, checked on every tool call by code, recorded in a hash-chained log.</p>
     <div class="cta">
       <a class="btn primary console-link" href="app/">Open the console</a>
       <a class="btn" href="#how">How it works</a>
     </div>
     <p class="fine console-alt">Checking for a local CapAuth server on port 8000.</p>
-    <p class="fine">Runs as an MCP server in front of Claude Code. No API key.</p>
+    <p class="fine">Runs as an MCP server in front of Claude Code.</p>
   </div>
   <figure class="shot"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata"></video><figcaption>Live run: a manager agent delegates one capability to a worker agent.</figcaption></figure>
 </div></section>
@@ -118,7 +118,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <section id="fix"><div class="wrap">
   <div class="kicker">The fix</div>
-  <h2>A lease for one task, not a token for everything.</h2>
+  <h2>Per-task leases instead of standing tokens.</h2>
   <div class="grid">
     <div class="card"><h3>Scoped to the task</h3><p>The lease holds only the capabilities the agent's plan needs: this channel, this repo, this customer. Nothing else is there to misuse.</p></div>
     <div class="card"><h3>Short-lived</h3><p>Ten minutes by default, revoked the moment the task ends. There is no standing access left behind.</p></div>
