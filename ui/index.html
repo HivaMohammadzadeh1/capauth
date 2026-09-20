@@ -340,7 +340,7 @@ async function loadScenarios(){
   }catch(e){ console.error("scenarios failed", e); }
 }
 const POLICY_CACHE = {};
-let CONFIG = null;
+let REST_CONFIG = null;
 async function syncScenarioHint(){
   const o = $("scenario").selectedOptions[0];
   if(!o) return;
@@ -358,8 +358,8 @@ async function syncScenarioHint(){
   $("fIssued").textContent = "-"; $("fExpires").textContent = "-"; setArc(0, false);
   $("fSource").textContent = "planner, clamped to the ceiling";
   try{
-    if(!CONFIG) CONFIG = await (await fetch("/api/config")).json();
-    $("fBackend").textContent = CONFIG.backend === "cli" ? "Claude Code, " + (CONFIG.default_model || "opus") : CONFIG.backend;
+    if(!REST_CONFIG) REST_CONFIG = await (await fetch("/api/config")).json();
+    $("fBackend").textContent = REST_CONFIG.backend === "cli" ? "Claude Code, " + (REST_CONFIG.default_model || "opus") : REST_CONFIG.backend;
   }catch(e){ $("fBackend").textContent = "-"; }
   try{
     if(!POLICY_CACHE[agent]) POLICY_CACHE[agent] = await (await fetch("/api/policies/" + encodeURIComponent(agent))).json();
