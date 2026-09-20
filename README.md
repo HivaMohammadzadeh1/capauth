@@ -1,5 +1,7 @@
 # CapAuth, Capability Authorization
 
+Website: https://hivam.org/capauth/
+
 A lease for one task instead of a token for everything. Task-scoped permissions for AI agents.
 
 An agent should not get everything its user can reach. CapAuth reads the task and the
