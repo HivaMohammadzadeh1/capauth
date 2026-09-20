@@ -846,6 +846,7 @@ async function loadRecentRuns(){
       li.addEventListener("click", async () => {
         const ev = await (await fetch("/api/runs/" + r.run_id + "/replay")).json();
         playEvents(ev, r.run_id, {simulated:false, label:"recording, live agent"});
+        current.run_id = r.run_id; current.serverRun = true;   // a server run keeps its audit ledger
       });
       ul.appendChild(li);
     });
