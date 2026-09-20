@@ -170,6 +170,21 @@ behavior.
   never list per agent identity. `GET /api/policies/{identity}` serves it. The planner can only
   narrow it.
 
+## Production notes
+
+What is demo-grade in this repository, and what production needs instead.
+
+| Demo today | Production |
+|---|---|
+| Runs and ledgers live in the server process | A durable store for runs, leases, and ledger entries |
+| The lease signing key is generated per process (`SCOPE_SIGNING_KEY`) | A key from the identity plane, rotated, with leases issued as short-lived tokens the tools can verify |
+| Policies are YAML files in `scope/policy/` | Policy as code in version control with review, served through the same ceiling model |
+| Slack, GitHub, Drive, Email, CRM are in-memory mocks | Real MCP servers behind the same enforcer; the enforcer does not change |
+| The console has no sign-in; approvals are recorded under a fixed operator | Operator identity from SSO; approvals bound to that identity in the ledger |
+| One planner model (Claude through Claude Code) | Any model; the enforcer never calls one |
+
+The enforcement path, the ceiling clamp, the lease format, the delegation rule, and the hash chain are the parts meant to carry over unchanged.
+
 ## Layer 7 alignment
 
 The event primer names Layer 7 as identity, security, and governance. CapAuth maps to it

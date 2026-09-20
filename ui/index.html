@@ -65,6 +65,10 @@ select{display:none}
 .switch input:checked + .track{background:var(--accent)}
 .switch input:checked + .track::after{transform:translateX(16px)}
 .switch b{color:var(--ink); font-weight:500; min-width:24px}
+.user{display:flex; align-items:center; gap:8px; padding-left:14px; margin-left:4px; border-left:1px solid var(--line)}
+.user .av{width:30px; height:30px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; display:inline-flex; align-items:center; justify-content:center}
+.user .un{font-size:13px; color:var(--ink); line-height:1.2}
+.user .un small{display:block; color:var(--muted); font-size:11.5px}
 .rec{display:none; align-items:center; gap:7px; font-size:12.5px; color:var(--limited); background:var(--limited-bg); border:1px solid #F1DDA2; border-radius:999px; padding:4px 10px}
 .rec.on{display:inline-flex}
 .rec.live{color:var(--accent); background:var(--accent-soft); border-color:#C7D5F4}
@@ -74,6 +78,7 @@ select{display:none}
 .card{background:var(--panel); border:1px solid var(--line); border-radius:10px}
 .card.wide{grid-column:1 / -1}
 .card h2{font-size:15px; font-weight:600; padding:14px 18px; border-bottom:1px solid var(--line)}
+.card h2 .count{font-weight:500; color:var(--muted); margin-left:6px}
 .card .in{padding:14px 18px}
 .hint{color:var(--muted); font-size:13.5px}
 
@@ -150,7 +155,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
 <body>
 
 <aside class="side">
-  <div class="brand"><i></i><div>CapAuth<small>Capability authorization</small></div></div>
+  <div class="brand"><img src="/ui/logo.svg" alt="" width="24" height="24"><div>CapAuth<small>Capability authorization</small></div></div>
   <nav class="nav">
     <a href="#" id="navRuns" class="active">Runs</a>
     <a href="#" id="navPolicies">Policies</a>
@@ -173,6 +178,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
       <button class="btn primary" id="runBtn">Run task</button>
       <button class="btn" id="replayBtn" disabled>Replay</button>
       <button class="btn" id="exportBtn" disabled>Export audit</button>
+      <div class="user" title="Signed in operator. Approvals are recorded under this identity."><span class="av">HM</span><span class="un">hiva@acme.com<small>Operator</small></span></div>
     </div>
   </div>
 
@@ -208,7 +214,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
     </section>
 
     <section class="card wide">
-      <h2>Decisions</h2>
+      <h2>Decisions <span class="count" id="decCount"></span></h2>
       <div id="approvalHost"></div>
       <div class="in" style="padding:0">
         <table class="tbl"><thead><tr><th style="width:78px">Time</th><th style="width:170px">Decision</th><th>Call</th><th>Reason</th></tr></thead>
@@ -402,6 +408,7 @@ function stopEverything(){
 function resetView(){
   $("leaseCard").classList.add("empty");
   $("ledger").innerHTML = "";
+  $("decCount").textContent = "";
   $("approvalHost").innerHTML = "";
   $("plan").innerHTML = "";
   $("caps").innerHTML = '<div class="hint">Issuing the lease from the plan.</div>';
@@ -496,6 +503,7 @@ function onPlan(d){
 function onLease(d){
   const lease = d.lease || {};
   $("leaseCard").classList.remove("empty");
+  setStatus("Running", "b-allow_limited");
   current.leaseId = lease.lease_id;
   current.ttl = lease.ttl_seconds || 600;
   current.issuedMs = Date.parse(lease.issued_at);
@@ -548,6 +556,8 @@ function onDelegated(d){
 
 function onDecision(d){
   if(!d.depth) markStep(d.tool, d.action, d.decision);
+  const nd = document.querySelectorAll("#ledger tr.row:not(.deleg)").length + (current.rows.has((d.lease_id || "") + ":" + d.seq) ? 0 : 1);
+  $("decCount").textContent = "(" + nd + ")";
   const led = $("ledger");
   const first = led.querySelector(".empty"); if(first) first.remove();
   const cls = "d-" + String(d.decision).toLowerCase();
@@ -577,6 +587,7 @@ function onInjection(d){
 }
 
 function onApprovalRequested(d){
+  setStatus("Waiting for approval", "b-approval");
   const host = $("approvalHost");
   const details = d.details || {};
   let kv = "<div><span>Derived from task</span><b>" + esc(d.derived_from_task) + "</b></div><div><span>Reason</span><b>" + esc(d.reason) + "</b></div>";
@@ -586,6 +597,7 @@ function onApprovalRequested(d){
     '<div class="ah"><span class="badge b-approval">Approval required</span><span class="mono">' + esc(d.call_str) + "</span></div>" +
     '<div class="akv">' + kv + "</div>" +
     '<div class="acts">' +
+      '<span class="hint" style="align-self:center; margin-right:6px">Recorded under hiva@acme.com.</span>' +
       '<button class="btn primary" data-o="approved_once">Approve once</button>' +
       '<button class="btn" data-o="approved_for_task">Approve for this task</button>' +
       '<button class="btn danger" data-o="denied">Deny</button>' +
@@ -606,6 +618,7 @@ async function sendApproval(approval_id, outcome, card){
 }
 
 function onApprovalResolved(d){
+  if(!current.finished) setStatus("Running", "b-allow_limited");
   const card = $("approvalHost").querySelector('.approval[data-aid="' + d.approval_id + '"]');
   if(card) card.remove();
 }
@@ -633,7 +646,7 @@ function onFinished(d){
   if(ringTimer){ clearInterval(ringTimer); ringTimer = null; }
   const ended = d && (d.status === "expired") ? "expired" : "revoked";
   greyRing(ended);
-  if(d.status === "failed") setStatus("Failed", "b-deny");
+  setStatus(d.status === "failed" ? "Failed" : d.status === "expired" ? "Expired" : "Complete", d.status === "failed" ? "b-deny" : d.status === "expired" ? "b-off" : "b-allow");
   const led = $("ledger");
   const early = d.early_by_seconds || 0;
   const mm = Math.floor(early / 60), ss = early % 60;
@@ -665,12 +678,11 @@ function setStatus(text, cls){
   const el = $("fStatus"); el.textContent = text; el.className = "badge " + cls;
 }
 function greyRing(state){
-  setStatus(state === "expired" ? "Expired" : "Revoked", "b-off");
+  if(state === "expired") setStatus("Expired", "b-off");
   $("fExpires").textContent = state === "expired" ? "expired" : "revoked at task end";
   $("ttlBar").classList.add("off");
 }
 function startRing(){
-  setStatus("Active", "b-allow");
   const liveTimes = current.mode !== "replay" && current.expiresMs > 0 && current.issuedMs > 0;
   let total, remainingAt;
   if(liveTimes){
