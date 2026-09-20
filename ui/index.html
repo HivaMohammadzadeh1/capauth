@@ -49,7 +49,7 @@ select{display:none}
 .toolbar{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .field{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
 .selectbox{position:relative}
-.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:220px}
+.selectbox select{display:block; appearance:none; -webkit-appearance:none; border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 34px 8px 12px; font:inherit; font-size:14px; min-width:300px; max-width:440px}
 .selectbox::after{content:""; position:absolute; right:12px; top:50%; width:8px; height:8px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-70%) rotate(45deg); pointer-events:none}
 .btn{border:1px solid var(--line-2); background:#fff; color:var(--ink); border-radius:8px; padding:8px 14px; font-size:14px; font-weight:500; cursor:pointer}
 .btn:hover{background:var(--bg)}
@@ -164,7 +164,7 @@ table#auditTable{width:100%; border-collapse:collapse; font-size:12.5px}
     <div><h1 id="runTitle">Runs</h1><div class="sub">Start a task for an agent identity. CapAuth issues the lease and checks every tool call.</div></div>
     <div class="toolbar">
       <span class="rec" id="recBadge"><span class="blip"></span>recording</span>
-      <div class="selectbox"><select id="scenario" aria-label="scenario"></select></div>
+      <span class="field">Agent and task</span><div class="selectbox"><select id="scenario" aria-label="agent and task"></select></div>
       <select id="modelSelect" class="mini" aria-label="agent model"></select>
       <select id="injectionSelect" class="mini" aria-label="injection variant"></select>
       <select id="replaySelect" class="mini" aria-label="recording to replay"></select>
@@ -321,8 +321,8 @@ async function loadScenarios(){
       const o = document.createElement("option");
       o.value = s.id;
       o.dataset.agent = s.agent || "";
-      o.textContent = s.title;
-      o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of;
+      o.textContent = (s.agent || "agent") + ": " + s.title;
+      o.dataset.task = s.task; o.dataset.agent = s.agent; o.dataset.obo = s.on_behalf_of; o.dataset.title = s.title;
       sel.appendChild(o);
     });
     syncScenarioHint();
@@ -332,16 +332,18 @@ async function loadScenarios(){
 function syncScenarioHint(){
   const o = $("scenario").selectedOptions[0];
   if(!o) return;
-  if(!current){
-    $("task").textContent = o.dataset.task;
-    $("agentId").textContent = stripId(o.dataset.agent);
-    $("obo").textContent = stripId(o.dataset.obo);
-    $("leaseId").textContent = "-";
-    $("backendTag").className = "kv";
-    $("backendTag").textContent = "";
-    $("plan").innerHTML = '<li class="hint">The plan appears here on Run task.</li>';
-    $("caps").innerHTML = '<div class="hint">Run task to issue a lease</div>';
-    $("leaseState").textContent = "";
+  $("task").textContent = o.dataset.task || "";
+  $("fAgent").textContent = o.dataset.agent || "-";
+  $("fObo").textContent = stripId(o.dataset.obo || "") || "-";
+  $("runTitle").textContent = o.dataset.title || "Runs";
+  $("fStatus").textContent = "Ready"; $("fStatus").className = "badge b-neutral";
+  if(!current || current.finished){
+    $("plan").innerHTML = '<li class="hint">The agent writes its plan before any tool call. Each step is ticked when its call is checked.</li>';
+    $("caps").innerHTML = '<div class="hint">Only what the plan needs, signed, for the lease TTL. Everything else in the ceiling stays off.</div>';
+    $("ledger").innerHTML = '<tr class="empty"><td colspan="4">Each tool call the agent makes lands here with its decision.</td></tr>';
+    $("approvalHost").innerHTML = "";
+    ["fLease","fIssued","fTtl","fPolicy","fSource"].forEach((k) => $(k).textContent = "-");
+    $("fExpires").textContent = "-"; setArc(0, false);
   }
 }
 

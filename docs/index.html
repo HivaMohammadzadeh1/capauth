@@ -85,7 +85,17 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 </div></section>
 
 <section id="problem"><div class="wrap">
-  <h2>Standing access is the gap.</h2>
+  <div class="kicker">Why this exists</div>
+  <h2>Every enterprise deploying agents hits the same wall.</h2>
+  <p class="lede">Nine in ten agent pilots never reach production. They pass the boardroom, then stall in security review, because the agent runs with its user's standing access and nobody can sign off on that.</p>
+  <figure style="margin-top:28px"><img src="diagrams/motivation.svg" alt="One agent holds every key its user has; the task needs three; a thread it reads asks it to export customer data"><figcaption>Standing access is the gap. The task needs three capabilities. The agent holds forty, and anything it reads can try to use the other thirty-seven.</figcaption></figure>
+  <div class="grid" style="margin-top:28px">
+    <div class="card"><h3>Non-human identities outnumber people</h3><p>Inside a large company, service accounts and agents already outnumber employees, and classic access control was built for actors whose permissions do not depend on a decision they have not made yet.</p></div>
+    <div class="card"><h3>Injection through tool results is unsolved</h3><p>An agent that reads a document or a web page can be instructed by it. There is no equivalent of a parameterized query. Detection is statistical; containment can be structural.</p></div>
+    <div class="card"><h3>Regulators now name the logs</h3><p>High-risk obligations for logging and human oversight took effect in August 2026. What counts as a sufficient agent audit log is not yet specified, and the first enforcement actions will define it.</p></div>
+  </div>
+  <p style="margin-top:18px; font-size:14px; color:var(--muted)">Framing and figures from the AGI House Enterprise Deployment primer, Layer 7: identity, security, and governance.</p>
+  <h2 style="margin-top:48px">Standing access is the gap.</h2>
   <div class="two">
     <div><p>Anything an agent reads, a document, a Slack thread, a web page, can carry an instruction the user never wrote. Detecting those instructions is a statistical problem and it is not solved. CapAuth does not try. It makes the out-of-lease action unreachable: the capability is not there to borrow.</p>
     <p>The same lease catches overreach that is not an attack. In our runs an agent tried to post a Slack message the task never asked for, and a plan that wanted to search every channel was narrowed to one.</p></div>
