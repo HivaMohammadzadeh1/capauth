@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CapAuth, capability authorization for AI agents</title>
+<meta name="description" content="CapAuth gives an AI agent a short-lived lease with only the capabilities its task needs, checks every tool call against it in code, and writes a hash-chained audit log. Runs as an MCP server in front of Claude Code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#FFFFFF; --bg-2:#F3F4F6; --line:#E1E4E9; --ink:#1B2430; --ink-2:#3C4757; --muted:#66707E; --accent:#2451B2; --accent-h:#1C4396; --accent-soft:#E8EEFB;
+  --allow:#136C3A; --allow-bg:#E1F5E9; --limited:#8A5A00; --limited-bg:#FFF3D1; --approval:#5B37B7; --approval-bg:#EEE8FD; --deny:#A32222; --deny-bg:#FDE5E5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; font-size:17px; line-height:1.6}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace; font-size:.92em}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+header.nav{position:sticky; top:0; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); z-index:10}
+header.nav .wrap{display:flex; align-items:center; gap:22px; height:60px}
+.brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--ink)}
+.brand i{width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block}
+.nav a.l{color:var(--ink-2); font-size:15px}
+.nav .sp{flex:1}
+.btn{display:inline-block; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 16px; font-weight:600; font-size:15px}
+.btn:hover{background:var(--bg-2); text-decoration:none}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.primary:hover{background:var(--accent-h)}
+section{padding:64px 0; border-top:1px solid var(--line)}
+section.hero{border-top:0; padding:72px 0 56px}
+h1{font-size:clamp(34px,5vw,56px); font-weight:800; letter-spacing:-0.02em; line-height:1.08; margin:0 0 18px; max-width:18ch}
+h2{font-size:clamp(24px,3vw,32px); font-weight:700; letter-spacing:-0.01em; line-height:1.2; margin:0 0 12px; max-width:28ch}
+h3{font-size:18px; font-weight:700; margin:0 0 6px}
+p{margin:0 0 14px; max-width:68ch}
+.lede{font-size:21px; color:var(--ink-2); max-width:60ch}
+.kicker{font-size:14px; font-weight:600; color:var(--accent); margin-bottom:10px}
+.cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:26px}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px}
+.card{border:1px solid var(--line); border-radius:12px; padding:20px 22px; background:#fff}
+.card p{font-size:15.5px; color:var(--ink-2); margin:0}
+.badge{display:inline-block; font-size:13px; font-weight:600; padding:2px 10px; border-radius:999px; line-height:1.6; margin-bottom:8px}
+.b-allow{background:var(--allow-bg); color:var(--allow)} .b-limited{background:var(--limited-bg); color:var(--limited)} .b-approval{background:var(--approval-bg); color:var(--approval)} .b-deny{background:var(--deny-bg); color:var(--deny)}
+figure{margin:24px 0 0}
+figure img{width:100%; height:auto; display:block; border-radius:12px; border:1px solid var(--line)}
+figcaption{font-size:14px; color:var(--muted); margin-top:8px}
+.shot{border:1px solid var(--line); border-radius:12px; overflow:hidden; max-height:560px; box-shadow:0 12px 40px rgba(27,36,48,.10)}
+.shot img{width:100%; height:auto; display:block}
+table{border-collapse:collapse; width:100%; font-size:15.5px; margin-top:8px}
+th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-size:14px; color:var(--muted); font-weight:600; background:var(--bg-2)}
+td.n{font-family:"JetBrains Mono",monospace; font-size:14.5px}
+.steps{counter-reset:s; list-style:none; padding:0; margin:18px 0 0; display:grid; gap:12px}
+.steps li{display:grid; grid-template-columns:32px 1fr; gap:14px; align-items:start; font-size:16px; color:var(--ink-2)}
+.steps li::before{counter-increment:s; content:counter(s); width:32px; height:32px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; display:inline-flex; align-items:center; justify-content:center; font-size:14px}
+.steps li b{color:var(--ink)}
+.rule{border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:0 10px 10px 0; padding:16px 20px; margin:22px 0 0; font-size:18px; max-width:70ch}
+pre{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:16px 18px; font-family:"JetBrains Mono",monospace; font-size:13.5px; line-height:1.55; overflow-x:auto; margin:12px 0 0}
+.two{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:28px; align-items:start}
+.vid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px}
+.vid img{width:100%; height:auto; border-radius:12px; border:1px solid var(--line)}
+.vid p{font-size:15px; color:var(--ink-2); margin-top:10px}
+footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted); font-size:14px}
+@media (max-width:640px){.nav a.l{display:none}}
+</style>
+</head>
+<body>
+
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#"><i></i>CapAuth</a>
+  <a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
+  <span class="sp"></span>
+  <a class="btn" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <div class="kicker">Capability authorization for AI agents</div>
+  <h1>A lease for one task, not a token for everything.</h1>
+  <p class="lede">An agent today runs with its user's full access to Slack, GitHub, Drive, and email. The task in front of it needs three things. CapAuth gives the agent only those three, for the length of one task, checks every tool call against that lease in code, and writes a log a security review can verify.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">See the code</a>
+    <a class="btn" href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4">Watch a live run (mp4)</a>
+  </div>
+  <figure class="shot" style="margin-top:40px"><img src="site/console.png" alt="The CapAuth console after a run: run summary, plan, lease capabilities, and the decisions table"></figure>
+</div></section>
+
+<section id="problem"><div class="wrap">
+  <h2>Standing access is the gap.</h2>
+  <div class="two">
+    <div><p>Anything an agent reads, a document, a Slack thread, a web page, can carry an instruction the user never wrote. Detecting those instructions is a statistical problem and it is not solved. CapAuth does not try. It makes the out-of-lease action unreachable: the capability is not there to borrow.</p>
+    <p>The same lease catches overreach that is not an attack. In our runs an agent tried to post a Slack message the task never asked for, and a plan that wanted to search every channel was narrowed to one.</p></div>
+    <div class="card"><h3>What "file the payment bug" needs</h3>
+      <p class="mono" style="line-height:1.9">slack.search &nbsp; #payments<br>slack.read_thread &nbsp; #payments/*<br>github.create_issue &nbsp; acme/payments-api<br><span style="color:var(--muted); text-decoration:line-through">everything else, for the next ten minutes</span></p></div>
+  </div>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><span><b>The agent writes its plan.</b> Two to six steps, before any tool call.</span></li>
+    <li><span><b>A security planner proposes the minimal capability set</b> for that plan. It is a model call and may be wrong or manipulated.</span></li>
+    <li><span><b>A policy ceiling clamps the proposal.</b> Per agent identity, written as code. The planner can only narrow it, never widen it.</span></li>
+    <li><span><b>CapAuth signs a lease</b> with a ten-minute TTL, bound to the agent identity and the human it acts for.</span></li>
+    <li><span><b>Every tool call is checked in pure code.</b> Signature, TTL, then tool, action, and resource. Outcomes: allowed, narrowed, waiting for a person, or denied.</span></li>
+    <li><span><b>The task ends, the lease is revoked,</b> and the hash-chained ledger is exported.</span></li>
+  </ol>
+  <div class="rule">The model proposes and code enforces. The enforcer that gates each call makes no model call and reads no network.</div>
+  <figure><img src="diagrams/architecture.svg" alt="Architecture diagram: Claude Code holds a lease and calls tools only through the CapAuth MCP server"><figcaption>CapAuth runs as an MCP server. Claude Code is launched with it as its only tool source, so every call is enforced before it reaches Slack, GitHub, Drive, or email.</figcaption></figure>
+  <figure><img src="diagrams/decision.svg" alt="The decision path for one tool call"><figcaption>The decision path for one call. Every branch appends one ledger entry.</figcaption></figure>
+</div></section>
+
+<section id="outcomes"><div class="wrap">
+  <h2>Four outcomes, all from real runs.</h2>
+  <div class="grid">
+    <div class="card"><span class="badge b-allow">Allowed</span><p class="mono">slack.search(channel="#payments")</p><p>Inside the lease, so it ran.</p></div>
+    <div class="card"><span class="badge b-limited">Narrowed</span><p class="mono">slack.search(channel="*") narrowed to #payments</p><p>The plan wanted every channel. The lease gave one.</p></div>
+    <div class="card"><span class="badge b-approval">Waiting for a person</span><p class="mono">github.merge_pr(acme/payments-api, #481)</p><p>Sensitive under policy. It waited for the operator to approve once, then ran.</p></div>
+    <div class="card"><span class="badge b-deny">Denied</span><p class="mono">slack.post_message(channel="#payments")</p><p>The task never asked for it. Denied as overreach, with provenance.</p></div>
+  </div>
+</div></section>
+
+<section id="measure"><div class="wrap">
+  <h2>The honest measurement</h2>
+  <p>72 real runs through Claude Code: three agent models, four prompt injection payload styles, CapAuth on and off, three runs per cell. Every run read the poisoned thread.</p>
+  <table>
+    <tr><th>Agent under test</th><th>Injection variants</th><th>Runs</th><th>Took the injected action</th><th>Customer data left the org</th><th>Legitimate issue filed</th></tr>
+    <tr><td>Opus 5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
+    <tr><td>Sonnet 5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
+    <tr><td>Haiku 4.5</td><td>4</td><td class="n">24</td><td class="n">0</td><td class="n">0</td><td class="n">24 / 24</td></tr>
+  </table>
+  <p style="margin-top:16px">No model took the bait, and CapAuth never blocked the legitimate work. A security review does not sign off on a refusal rate. With CapAuth the out-of-lease action is unreachable whatever the model does, and the same lease stopped overreach that was not an attack.</p>
+</div></section>
+
+<section id="org"><div class="wrap">
+  <h2>Built for an AI organization</h2>
+  <div class="two">
+    <div><p>AI managers that create task-specific AI employees, humans who set direction and approve decisions, every agent tied to a responsible person. That is the shape enterprises are describing. CapAuth is the authorization for it.</p>
+    <p>A manager agent hands a worker a smaller lease through the <span class="mono">capauth.delegate</span> tool. The worker's lease must be a strict subset of the manager's, cannot outlive it, and carries the parent lease id. Authority narrows at every hop, and both leases write to one audit trail.</p>
+    <p>Verified live: the manager's lease holds three things, the worker gets one capability for five minutes, three decisions land on two hash chains linked by parent id.</p></div>
+    <div><img src="site/enterprise-2-ai-org-preview.gif" alt="Live run: a manager agent delegates to a worker agent" style="width:100%; border-radius:12px; border:1px solid var(--line)"></div>
+  </div>
+  <figure><img src="diagrams/lifecycle.svg" alt="Lease lifecycle"><figcaption>Nothing about a lease survives the task. The next task starts from its own plan.</figcaption></figure>
+</div></section>
+
+<section id="controls"><div class="wrap">
+  <h2>Enterprise controls</h2>
+  <div class="grid">
+    <div class="card"><h3>Policy as code</h3><p>One YAML file per agent identity: the ceiling, the actions that need a person, the actions that are never granted.</p></div>
+    <div class="card"><h3>Lease preview</h3><p>Ask what a task template would get before any agent holds it. The security team pre-checks the lease, not the transcript.</p></div>
+    <div class="card"><h3>Delegation chains</h3><p>Child leases are strict subsets with shorter TTLs. The ledger shows the chain.</p></div>
+    <div class="card"><h3>Audit you can verify</h3><p>Hash-chained entries with who, for whom, what, why, and when. A signed attestation, JSONL export for a SIEM, and an offline verifier that exits non-zero on tamper.</p></div>
+    <div class="card"><h3>MCP native</h3><p>Drops in front of any MCP client. The agent and the tools do not change.</p></div>
+    <div class="card"><h3>Any model behind it</h3><p>Enforcement does not depend on the model. Use a frontier model, a local one, or a smaller worker model per task.</p></div>
+  </div>
+</div></section>
+
+<section id="videos"><div class="wrap">
+  <h2>Demo videos</h2>
+  <div class="vid">
+    <div><a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4"><img src="site/enterprise-2-ai-org-preview.gif" alt="AI organization demo"></a><p><b>An AI organization.</b> A live Claude Code run. The manager delegates one capability to a worker. Nothing simulated. <a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4">mp4</a></p></div>
+    <div><a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-1-support.mp4"><img src="site/enterprise-1-support-preview.gif" alt="Customer support demo"></a><p><b>A customer-facing agent, before and after.</b> The customer's message asks the agent to export every record. Simulated agent, labeled on screen, because the real models declined the bait. <a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-1-support.mp4">mp4</a></p></div>
+  </div>
+</div></section>
+
+<section id="run"><div class="wrap">
+  <h2>Run it</h2>
+  <p>Requirements: Python 3.13, <span class="mono">uv</span>, and the <span class="mono">claude</span> CLI logged in. No API key.</p>
+  <pre>git clone https://github.com/HivaMohammadzadeh1/capauth && cd capauth
+uv sync
+uv run python server.py            # open http://localhost:8000
+uv run pytest                      # 21 tests
+uv run python attack/demo.py --scope off   # terminal before
+uv run python attack/demo.py --scope on    # terminal after</pre>
+  <p style="margin-top:14px">Built at AGI House Enterprise Deployment Build Day, 19 September 2026, to the primer's own brief: scoped agent credentials, least privilege that survives an adversarial prompt, and a log a regulator can read.</p>
+</div></section>
+
+<footer><div class="wrap">CapAuth. Capability authorization for AI agents. <a href="https://github.com/HivaMohammadzadeh1/capauth">github.com/HivaMohammadzadeh1/capauth</a></div></footer>
+</body>
+</html>
