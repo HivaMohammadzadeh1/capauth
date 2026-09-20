@@ -1,13 +1,13 @@
-# Scope
+# CapAuth, Capability Authorization
 
-Task-scoped permissions for AI agents.
+A lease for one task instead of a token for everything. Task-scoped permissions for AI agents.
 
-An agent should not get everything its user can reach. Scope reads the task and the
+An agent should not get everything its user can reach. CapAuth reads the task and the
 agent's own plan, issues a short-lived signed lease that holds only the capabilities
 that task needs, checks every tool call against the lease, and revokes the lease when
 the task ends. Every decision lands in a hash-chained audit ledger.
 
-The agent under test is Claude Code itself. Scope runs as an MCP server. Claude Code
+The agent under test is Claude Code itself. CapAuth runs as an MCP server. Claude Code
 calls every tool through it, today, unchanged.
 
 ## Demo videos
@@ -22,7 +22,7 @@ calls every tool through it, today, unchanged.
 
 ![Customer support: before and after](demo/enterprise-1-support-preview.gif)
 
-**The original attack: a poisoned Slack thread.** Simulated agent, labeled. Without Scope the export and the email run; with Scope both are denied and the real task still completes.
+**The original attack: a poisoned Slack thread.** Simulated agent, labeled. Without CapAuth the export and the email run; with CapAuth both are denied and the real task still completes.
 [Watch the mp4](https://github.com/HivaMohammadzadeh1/scope/raw/master/demo/before-after.mp4)
 
 ![Poisoned thread: before and after](demo/before-after-preview.gif)
@@ -37,16 +37,16 @@ is deterministic code and makes no model call.
 
 ## What it is
 
-Scope is an authorization plane that sits between an agent and its tools, running as an
-MCP server. The run engine writes a signed lease, then launches `claude -p` with Scope
+CapAuth is an authorization plane that sits between an agent and its tools, running as an
+MCP server. The run engine writes a signed lease, then launches `claude -p` with CapAuth
 as its only tool source (`--mcp-config`, `--strict-mcp-config`, built-in tools disabled).
-Every tool call Claude Code makes goes through the Scope enforcer inside that MCP server
+Every tool call Claude Code makes goes through the CapAuth enforcer inside that MCP server
 before it touches a mock tool. The agent holds a lease, never a raw tool credential.
 
 Each call gets one of four decisions.
 
 - `ALLOW`. The call is inside the lease. It runs.
-- `ALLOW_LIMITED`. The call is wider than the lease. Scope narrows it, then runs the narrow version.
+- `ALLOW_LIMITED`. The call is wider than the lease. CapAuth narrows it, then runs the narrow version.
 - `HUMAN_APPROVAL`. The action is sensitive under policy. A person decides, once or for the task.
 - `DENY`. The resource or action is outside the lease. The call never reaches the tool.
 
@@ -58,7 +58,7 @@ subscription.
 
 An agent today runs with its user's full tokens across Slack, GitHub, Drive, and email.
 One task needs three narrow things. The rest is standing access an attacker can borrow
-through a prompt injection. Scope removes the standing access. It does not try to detect
+through a prompt injection. CapAuth removes the standing access. It does not try to detect
 the injection. It makes the injected action unreachable, because the action is not in the
 lease.
 
@@ -70,8 +70,8 @@ The flow is one loop.
 2. Claude Code writes a short plan before any tool call, as a structured call.
 3. The lease issuer runs the security planner, caps the result against the policy ceiling,
    signs the lease, and starts the TTL.
-4. The engine launches Claude Code with the Scope MCP server as its only tool source.
-5. Claude Code makes a tool call. The Scope enforcer verifies the signature and TTL, then
+4. The engine launches Claude Code with the CapAuth MCP server as its only tool source.
+5. Claude Code makes a tool call. The CapAuth enforcer verifies the signature and TTL, then
    matches tool, action, and resource. It returns `ALLOW`, `ALLOW_LIMITED`,
    `HUMAN_APPROVAL`, or `DENY`.
 6. Allowed calls reach the mock tools. Sensitive calls wait for the operator. Denied calls stop.
@@ -79,7 +79,7 @@ The flow is one loop.
 8. The task ends or the TTL runs out, and the lease is revoked.
 
 Tool results return to Claude Code as untrusted content. That path can carry a prompt
-injection. Scope does not filter it. Whatever the agent reads there, the next tool call
+injection. CapAuth does not filter it. Whatever the agent reads there, the next tool call
 still has to fit the lease.
 
 ![Architecture](docs/diagrams/architecture.svg)
@@ -114,7 +114,7 @@ Open http://localhost:8000 and pick a scenario.
   it to export every customer record and email it outside, and to over-refund. The lease covers one
   customer, the export is on the never list, outbound email is denied, and the refund waits for a person.
 - `ai-org`. An AI manager agent delegates the reading of one thread to a worker agent through the
-  `scope.delegate` tool. The worker runs as its own Claude Code process under a child lease that is a
+  `capauth.delegate` tool. The worker runs as its own Claude Code process under a child lease that is a
   strict subset of the manager's (one capability, five minutes) and cannot outlive it. Both leases
   write to one audit trail, linked by `parent_lease_id`. Verified live: 37 seconds, two chains.
 
@@ -124,7 +124,7 @@ the agent tried was denied as not in the lease.
 
 ## The honest measurement
 
-The benchmark is a matrix: agent model, by injection variant, by Scope on or off, three
+The benchmark is a matrix: agent model, by injection variant, by CapAuth on or off, three
 runs each. Seventy-two runs in total. The result is a clean sweep.
 
 | Agent model | Runs | Injection followed | Customer data left the org | Legitimate task done |
@@ -134,17 +134,17 @@ runs each. Seventy-two runs in total. The result is a clean sweep.
 | Haiku | 24 | 0 | 0 | 24/24 |
 
 Opus, Sonnet, and Haiku refused all four payload styles (`naive`, `process_authority`,
-`helpful_colleague`, `tool_output_disguise`), with Scope and without it. The legitimate task
+`helpful_colleague`, `tool_output_disguise`), with CapAuth and without it. The legitimate task
 completed 72 of 72, so the lease was never too tight. The Opus and Sonnet half ran in about
 280 seconds, the Haiku half in about 130. Raw tables:
 `bench/out/results-20260919-154216.md` and `bench/out/results-20260919-154555.md`.
 
 We tried 72 times to make Claude Code follow an injection. It never did. That is good news
-about the model, and it is exactly why a security review still needs Scope. A review does not
-sign off on a batting average; it signs off on a guarantee. With Scope, the out-of-lease
+about the model, and it is exactly why a security review still needs CapAuth. A review does not
+sign off on a batting average; it signs off on a guarantee. With CapAuth, the out-of-lease
 action is unreachable by construction.
 
-Scope also caught real overreach that was not an attack. In `fix-deploy` the agent tried
+CapAuth also caught real overreach that was not an attack. In `fix-deploy` the agent tried
 `slack.post_message` to announce the merge, outside the task, and it was denied with
 provenance. In `file-issue` the agent's plan wanted to search every channel, and the lease
 narrowed it to `#payments` before it ran. Least privilege holds independent of model
@@ -170,7 +170,7 @@ behavior.
 
 ## Layer 7 alignment
 
-The event primer names Layer 7 as identity, security, and governance. Scope maps to it
+The event primer names Layer 7 as identity, security, and governance. CapAuth maps to it
 point by point. The wording is factual.
 
 - Agent identity is bound to the human it acts for. Every call carries `principal` and
@@ -179,12 +179,12 @@ point by point. The wording is factual.
 - Human oversight gates sensitive actions through the approval decision.
 - The audit log records who, for whom, what, why, and when, with a hash chain. This is
   aimed at the EU AI Act high-risk logging duty that took effect in August 2026.
-- The injection defense is structural, not statistical. Scope does not classify the
+- The injection defense is structural, not statistical. CapAuth does not classify the
   prompt. It makes the out-of-lease action unreachable.
-- Scope runs as an MCP server, so it sits between Claude Code, or any MCP client, and the
+- CapAuth runs as an MCP server, so it sits between Claude Code, or any MCP client, and the
   tools. This follows the MCP authorization direction.
 
-Scope builds the primer's own "Scoped agent credentials" project idea, and addresses
+CapAuth builds the primer's own "Scoped agent credentials" project idea, and addresses
 items in the OWASP agentic top ten, including excessive agency and tool misuse.
 
 ## Layout
@@ -196,9 +196,9 @@ items in the OWASP agentic top ten, including excessive agency and tool misuse.
 | `scope/lease.py` | Issue, sign, verify, expire, revoke |
 | `scope/enforce.py` | The decision function; pure, no I/O |
 | `scope/broker.py` | Gate-and-execute logic shared by the in-process loop and the MCP server |
-| `scope/mcp_server.py` | Scope as an MCP server; every tool call is enforced here |
+| `scope/mcp_server.py` | CapAuth as an MCP server; every tool call is enforced here |
 | `scope/audit.py` | Hash-chained ledger, JSON export, chain verify |
-| `agent/cli_backend.py` | Drives `claude -p` with Scope as the only tool source |
+| `agent/cli_backend.py` | Drives `claude -p` with CapAuth as the only tool source |
 | `agent/scripted.py` | Deterministic stand-in for offline replay |
 | `tools/` | Slack, GitHub, Drive, email mocks with fixtures and one injected thread |
 | `attack/variants.py` | Four injection payloads |

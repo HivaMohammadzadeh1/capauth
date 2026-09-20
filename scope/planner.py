@@ -27,7 +27,7 @@ RESOURCE_FORMATS = {
     ("drive", "list_files"): "file:*",
     ("drive", "read_file"): "file:<name>",
     ("email", "send"): "recipient:<address>  or recipient:*@<domain>",
-    ("scope", "delegate"): "worker:*  (lets the agent hand a narrower lease to a worker agent)",
+    ("capauth", "delegate"): "worker:*  (lets the agent hand a narrower lease to a worker agent)",
     ("chat", "read"): "conversation:current",
     ("chat", "reply"): "conversation:current",
     ("crm", "read_customer"): "customer:<id>  (name the one customer the conversation is with)",
@@ -43,7 +43,7 @@ SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "tool": {"type": "string", "enum": ["slack", "github", "drive", "email", "scope", "chat", "crm", "refunds"], "description": "tool name only, no dot"},
+                    "tool": {"type": "string", "enum": ["slack", "github", "drive", "email", "capauth", "chat", "crm", "refunds"], "description": "tool name only, no dot"},
                     "action": {"type": "string", "enum": ["search", "read_thread", "post_message", "create_issue", "read_pr", "push", "merge_pr", "delete_repo", "list_files", "read_file", "send", "delegate", "read", "reply", "read_customer", "export", "issue"], "description": "action name only"},
                     "resource": {"type": "string", "description": "in the format shown for that action"},
                     "justification": {"type": "string"},
@@ -58,7 +58,7 @@ SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
-SYSTEM = """You are the security planner inside Scope, an authorization broker for AI agents.
+SYSTEM = """You are the security planner inside CapAuth, a capability authorization broker for AI agents.
 You receive a user's task, the agent's plan, and the ceiling of capabilities this agent identity may ever hold.
 Output the minimal set of capabilities the plan needs, nothing more.
 
@@ -137,10 +137,10 @@ MERGED_SCHEMA: dict[str, Any] = {
 
 MERGED_SYSTEM = (
     "You do two jobs in one response. First, as the agent, write a short numbered plan of 2 to 6 concrete steps for the task, "
-    "naming the tool each step uses. Second, as the security planner inside Scope, list the minimal capability set that plan needs.\n\n"
+    "naming the tool each step uses. Second, as the security planner inside CapAuth, list the minimal capability set that plan needs.\n\n"
     + SYSTEM.split("Rules:", 1)[1].join(["Rules for the capability set:", ""]) if False else
     "You do two jobs in one response. First, as the agent, write a short numbered plan of 2 to 6 concrete steps for the task, "
-    "naming the tool each step uses. Second, as the security planner inside Scope, list the minimal capability set that plan needs, "
+    "naming the tool each step uses. Second, as the security planner inside CapAuth, list the minimal capability set that plan needs, "
     "following these rules:\n" + SYSTEM.split("Rules:", 1)[1]
 )
 

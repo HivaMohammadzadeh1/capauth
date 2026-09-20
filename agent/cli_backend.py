@@ -1,4 +1,4 @@
-"""Model backend that drives Claude Code (`claude -p`) instead of the API.
+"""Model backend that drives Claude Code (`claude -p`) instead of the API. CapAuth is its only tool source.
 
 Structured calls (plan, security planner) use --json-schema. The agent phase runs
 Claude Code with Scope as its only tool source via --mcp-config; events flow back
@@ -53,7 +53,7 @@ async def cli_complete_json(system: str, user: str, schema: dict[str, Any]) -> d
 
 def write_mcp_config(run_dir: Path, env: dict[str, str]) -> Path:
     python = sys.executable
-    cfg = {"mcpServers": {"scope": {"command": python, "args": ["-m", "scope.mcp_server"],
+    cfg = {"mcpServers": {"capauth": {"command": python, "args": ["-m", "scope.mcp_server"],
                                      "env": {**env, "PYTHONPATH": str(REPO), "PYTHONUNBUFFERED": "1"}}}}
     path = run_dir / "mcp.json"
     path.write_text(json.dumps(cfg))

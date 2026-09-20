@@ -1,4 +1,4 @@
-# Scope: server/UI contract
+# CapAuth: server/UI contract
 
 One FastAPI server (`server.py`) serves `ui/index.html` at `/` and these endpoints.
 The UI is vanilla HTML/JS and talks only to these. All JSON. All times ISO-8601 UTC.

@@ -7,7 +7,7 @@ ceiling:
   - {tool: slack,  action: read_thread,   resource: "channel:*"}
   - {tool: github, action: create_issue,  resource: "repo:acme/*"}
   - {tool: github, action: read_pr,       resource: "repo:acme/*"}
-  - {tool: scope,  action: delegate,      resource: "worker:*"}
+  - {tool: capauth, action: delegate,      resource: "worker:*"}
 sensitive: []
 never:
   - {tool: email,  action: send}

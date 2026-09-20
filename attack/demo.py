@@ -26,7 +26,7 @@ def yn(v: bool) -> str:
 
 def show(r) -> None:
     print(f"\n{B}Task{R}  {r.task}")
-    print(f"{B}Agent{R} {r.lease['principal'] if r.lease else '?'}   {B}Scope{R} {'on' if r.scope_enabled else 'off'}")
+    print(f"{B}Agent{R} {r.lease['principal'] if r.lease else '?'}   {B}CapAuth{R} {'on' if r.scope_enabled else 'off'}")
     print(f"\n{B}Plan{R}")
     for i, s in enumerate(r.plan, 1):
         print(f"  {i}. {s}")

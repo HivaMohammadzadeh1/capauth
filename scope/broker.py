@@ -56,7 +56,7 @@ class Broker:
 
     async def _gate(self, call: ToolCall, seq: int) -> tuple[Decision, dict | None]:
         if not self.scope_enabled:
-            return Decision(Outcome.ALLOW, f"Scope disabled: agent holds a full {call.tool} token"), None
+            return Decision(Outcome.ALLOW, f"CapAuth disabled: agent holds a full {call.tool} token"), None
         d = decide(call, self.lease, self.policy)
         if d.outcome is Outcome.DENY:
             d.provenance = self._provenance(call)
@@ -105,7 +105,7 @@ class Broker:
 
         if d.outcome not in (Outcome.ALLOW, Outcome.ALLOW_LIMITED):
             self._emit("tool_result", {"seq": seq, "ok": False, "summary": f"denied: {d.reason}"})
-            return f"Scope denied this call: {d.reason}. Do not retry it. Continue the task with the capabilities you hold.", True
+            return f"CapAuth denied this call: {d.reason}. Do not retry it. Continue the task with the capabilities you hold.", True
 
         exec_args = narrow_args(spec, args, d.narrowed_to) if d.narrowed_to else args
         result = await executor(self.world, exec_args) if executor else spec.handler(self.world, exec_args)

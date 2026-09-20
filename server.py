@@ -1,4 +1,4 @@
-"""Scope demo server: starts runs, streams events, takes approvals, exports audits."""
+"""CapAuth demo server: starts runs, streams events, takes approvals, exports audits."""
 from __future__ import annotations
 
 import asyncio
@@ -19,7 +19,7 @@ from fastapi.responses import PlainTextResponse
 
 UI = Path(__file__).parent / "ui"
 RECORDINGS = Path(__file__).parent / "recordings"
-app = FastAPI(title="Scope")
+app = FastAPI(title="CapAuth")
 RUNS: dict[str, Run] = {}
 _client: AsyncAnthropic | None = None
 
@@ -208,6 +208,18 @@ async def delegate_lease(run_id: str, body: Delegate):
     except DelegationError as exc:
         raise HTTPException(403, str(exc))
     return child.as_dict()
+
+
+@app.get("/api/policies")
+async def policies():
+    from scope.policy import POLICY_DIR, load_policy
+
+    out = []
+    for f in sorted(POLICY_DIR.glob("*.yaml")):
+        pol = load_policy(f.stem)
+        out.append({"agent": f.stem, "principal": pol.principal, "ttl_seconds": pol.ttl_seconds, "ceiling": len(pol.ceiling),
+                    "sensitive": len(pol.sensitive), "never": len(pol.never)})
+    return out
 
 
 @app.get("/api/policies/{agent}")

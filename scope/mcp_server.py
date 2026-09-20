@@ -1,4 +1,4 @@
-"""Scope as an MCP server. Claude Code (or any MCP client) calls tools through it.
+"""CapAuth as an MCP server. Claude Code (or any MCP client) calls tools through it.
 
 Configuration comes from the environment, set by the run engine:
   SCOPE_RUN_DIR      directory with lease.json; events.jsonl and approvals/ are written here
@@ -67,7 +67,7 @@ def build_broker() -> Broker:
 async def main() -> None:
     APPROVALS.mkdir(parents=True, exist_ok=True)
     broker = build_broker()
-    server = Server("scope")
+    server = Server("capauth")
 
     @server.list_tools()
     async def list_tools() -> list[t.Tool]:
@@ -109,7 +109,7 @@ async def main() -> None:
         spec = TOOLS.get(name)
         if spec is None:
             return [t.TextContent(type="text", text=f"unknown tool {name}")]
-        content, is_error = await broker.handle(spec, arguments or {}, executor=run_worker if name == "scope_delegate" else None)
+        content, is_error = await broker.handle(spec, arguments or {}, executor=run_worker if name == "capauth_delegate" else None)
         return [t.TextContent(type="text", text=content)]
 
     emit("_mcp_ready", {"tools": len(TOOLS)})
@@ -121,5 +121,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except Exception as exc:  # keep the transport clean; report on stderr
-        print(f"scope mcp server failed: {exc!r}", file=sys.stderr)
+        print(f"capauth mcp server failed: {exc!r}", file=sys.stderr)
         raise

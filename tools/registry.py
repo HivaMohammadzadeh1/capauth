@@ -218,17 +218,17 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("refunds", "issue", "Issue a refund on an order.",
                  _schema({"order_id": "Order id", "amount": "Amount in USD", "reason": "Reason"}, ["order_id", "amount"]),
                  lambda a: f"order:{a['order_id']}", refunds_issue),
-        ToolSpec("scope", "delegate",
+        ToolSpec("capauth", "delegate",
                  "Delegate one narrow sub-task to a worker agent that runs under its own lease. Give it ONLY the capabilities that sub-task needs, "
                  "as a list of {tool, action, resource} taken from what you hold (for example slack.read_thread on channel:#payments/thread:18291). "
-                 "Scope refuses any capability wider than yours. Returns the worker's report.",
+                 "CapAuth refuses any capability wider than yours. Returns the worker's report.",
                  {"type": "object", "properties": {
                      "task": {"type": "string", "description": "The sub-task, in one or two sentences"},
                      "capabilities": {"type": "array", "items": {"type": "object", "properties": {
                          "tool": {"type": "string"}, "action": {"type": "string"}, "resource": {"type": "string"}},
                          "required": ["tool", "action", "resource"]}}},
                   "required": ["task", "capabilities"]},
-                 lambda a: "worker:*", lambda world, a: {"error": "delegate must run inside the Scope MCP server", "summary": "not available here"}),
+                 lambda a: "worker:*", lambda world, a: {"error": "delegate must run inside the CapAuth MCP server", "summary": "not available here"}),
         ToolSpec("email", "send", "Send an email, optionally attaching a Drive file by name.",
                  _schema({"to": "Recipient address", "subject": "Subject", "body": "Body", "attachment": "Drive file name to attach"}, ["to", "subject", "body"]),
                  lambda a: f"recipient:{a['to']}", email_send),
