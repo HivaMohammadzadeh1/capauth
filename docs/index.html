@@ -58,7 +58,7 @@ td.n{font-family:"JetBrains Mono",monospace; font-size:14.5px}
 pre{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:16px 18px; font-family:"JetBrains Mono",monospace; font-size:13.5px; line-height:1.55; overflow-x:auto; margin:12px 0 0}
 .two{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:28px; align-items:start}
 .vid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px}
-.vid img{width:100%; height:auto; border-radius:12px; border:1px solid var(--line)}
+.vid img,.vid video{width:100%; height:auto; border-radius:12px; border:1px solid var(--line); background:#0B1017; display:block}
 .vid p{font-size:15px; color:var(--ink-2); margin-top:10px}
 footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted); font-size:14px}
 @media (max-width:640px){.nav a.l{display:none}}
@@ -81,7 +81,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">See the code</a>
     <a class="btn" href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4">Watch a live run (mp4)</a>
   </div>
-  <figure class="shot" style="margin-top:40px"><img src="site/console.png" alt="The CapAuth console after a run: run summary, plan, lease capabilities, and the decisions table"></figure>
+  <figure class="shot" style="margin-top:40px; max-height:none"><video src="site/enterprise-2-ai-org.mp4" poster="site/console.png" autoplay muted loop playsinline controls preload="metadata" style="width:100%; display:block; background:#0B1017"></video><figcaption style="padding:10px 14px">A live run, recorded from the console: an AI manager agent delegates one capability to a worker agent, and every call is checked. No sound.</figcaption></figure>
 </div></section>
 
 <section id="problem"><div class="wrap">
@@ -147,7 +147,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
     <div><p>AI managers that create task-specific AI employees, humans who set direction and approve decisions, every agent tied to a responsible person. That is the shape enterprises are describing. CapAuth is the authorization for it.</p>
     <p>A manager agent hands a worker a smaller lease through the <span class="mono">capauth.delegate</span> tool. The worker's lease must be a strict subset of the manager's, cannot outlive it, and carries the parent lease id. Authority narrows at every hop, and both leases write to one audit trail.</p>
     <p>Verified live: the manager's lease holds three things, the worker gets one capability for five minutes, three decisions land on two hash chains linked by parent id.</p></div>
-    <div><img src="site/enterprise-2-ai-org-preview.gif" alt="Live run: a manager agent delegates to a worker agent" style="width:100%; border-radius:12px; border:1px solid var(--line)"></div>
+    <div><video src="site/enterprise-2-ai-org.mp4" controls muted playsinline preload="metadata" poster="site/console.png" style="width:100%; border-radius:12px; border:1px solid var(--line); background:#0B1017; display:block"></video></div>
   </div>
   <figure><img src="diagrams/lifecycle.svg" alt="Lease lifecycle"><figcaption>Nothing about a lease survives the task. The next task starts from its own plan.</figcaption></figure>
 </div></section>
@@ -167,8 +167,9 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 <section id="videos"><div class="wrap">
   <h2>Demo videos</h2>
   <div class="vid">
-    <div><a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4"><img src="site/enterprise-2-ai-org-preview.gif" alt="AI organization demo"></a><p><b>An AI organization.</b> A live Claude Code run. The manager delegates one capability to a worker. Nothing simulated. <a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-2-ai-org.mp4">mp4</a></p></div>
-    <div><a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-1-support.mp4"><img src="site/enterprise-1-support-preview.gif" alt="Customer support demo"></a><p><b>A customer-facing agent, before and after.</b> The customer's message asks the agent to export every record. Simulated agent, labeled on screen, because the real models declined the bait. <a href="https://github.com/HivaMohammadzadeh1/capauth/raw/master/demo/enterprise-1-support.mp4">mp4</a></p></div>
+    <div><video src="site/enterprise-2-ai-org.mp4" controls playsinline preload="metadata" poster="site/console.png"></video><p><b>An AI organization.</b> A live Claude Code run. The manager delegates one capability to a worker. Nothing simulated.</p></div>
+    <div><video src="site/enterprise-1-support.mp4" controls playsinline preload="metadata"></video><p><b>A customer-facing agent, before and after.</b> The customer's message asks the agent to export every record. Simulated agent, labeled on screen, because the real models declined the bait.</p></div>
+    <div><video src="site/before-after.mp4" controls playsinline preload="metadata"></video><p><b>The poisoned Slack thread, before and after.</b> Without CapAuth the export and the email run. With CapAuth both are denied and the real task still completes. Simulated agent, labeled.</p></div>
   </div>
 </div></section>
 
