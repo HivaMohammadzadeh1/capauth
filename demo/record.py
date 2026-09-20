@@ -188,12 +188,7 @@ async def single_capture(args):
             if args.title:
                 title_context = await browser.new_context(viewport=SIZE, device_scale_factor=1)
                 title_page = await title_context.new_page()
-                await title_page.set_content(
-                    '<html><body style="margin:0;background:#0B1017;color:#F1F5F9;'
-                    'width:1440px;height:900px;display:flex;align-items:center;justify-content:center;'
-                    'font-family:Arial,sans-serif"><div style="max-width:1190px;text-align:center;'
-                    'font-size:48px;font-weight:600;line-height:1.35">'
-                    + args.title + '</div></body></html>')
+                await title_page.set_content(card_html(args.title))
                 await title_page.screenshot(path=str(HERE / f"{name}-title.png"))
                 await title_context.close()
             if args.title_only:
