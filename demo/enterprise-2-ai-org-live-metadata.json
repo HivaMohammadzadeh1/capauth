@@ -3,10 +3,10 @@
   "mode": "live",
   "recording": null,
   "scope": "on",
-  "title": "With Scope, the manager hands the worker one capability for five minutes, and both leases share one audit trail. Live run, Claude Code.",
+  "title": "With CapAuth, the manager hands the worker one capability for five minutes, and both leases share one audit trail. Live run, Claude Code.",
   "approval_clicks": 0,
-  "run_id": "run_277124",
-  "terminal": "Task complete. Lease sc_ee3b revoked at 16:16:43, 14 min 40 s early. 3 decisions, chain intact.",
+  "run_id": "run_7a1ca6",
+  "terminal": "Task complete. Lease sc_3d0b revoked at 17:17:20, 14 min 42 s early. 3 decisions, chain intact.",
   "audit_http_status": 200,
   "success": true
 }
