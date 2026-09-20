@@ -19,10 +19,11 @@ a:hover{text-decoration:underline}
 .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace; font-size:.92em}
 .wrap{max-width:1080px; margin:0 auto; padding:0 24px}
 header.nav{position:sticky; top:0; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); z-index:10}
-header.nav .wrap{display:flex; align-items:center; gap:22px; height:60px}
+header.nav .wrap{display:flex; align-items:center; gap:20px; height:60px; flex-wrap:nowrap; overflow:hidden}
 .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--ink)}
 .brand img{width:26px; height:26px; display:block}
-.nav a.l{color:var(--ink-2); font-size:15px}
+.nav a.l{color:var(--ink-2); font-size:15px; white-space:nowrap}
+.nav .btn{white-space:nowrap}
 .nav .sp{flex:1}
 .btn{display:inline-block; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 16px; font-weight:600; font-size:15px}
 .btn:hover{background:var(--bg-2); text-decoration:none}
@@ -80,7 +81,7 @@ footer{border-top:1px solid var(--line); padding:32px 0 48px; color:var(--muted)
 
 <header class="nav"><div class="wrap">
   <a class="brand" href="#"><img src="site/brand/mark.svg" alt="" width="26" height="26">CapAuth</a>
-  <a class="l" href="#problem">Problem</a><a class="l" href="#fix">Fix</a><a class="l" href="#enterprise">Enterprise</a><a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#org">AI organizations</a><a class="l" href="#run">Run it</a>
+  <a class="l" href="#problem">Problem</a><a class="l" href="#fix">Fix</a><a class="l" href="#enterprise">Enterprise</a><a class="l" href="#how">How it works</a><a class="l" href="#measure">Measurement</a><a class="l" href="#run">Run it</a>
   <span class="sp"></span>
   <a class="btn console-link" href="app/">Open the console</a>
   <a class="btn primary" href="https://github.com/HivaMohammadzadeh1/capauth">GitHub</a>
