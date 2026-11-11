@@ -227,3 +227,8 @@ items in the OWASP agentic top ten, including excessive agency and tool misuse.
 | `bench/run.py` | The measurement matrix |
 | `demo/` | Before and after video pipeline |
 | `tests/` | The 19 tests: four decisions, narrowing, expiry, signature, chain tamper |
+
+## License
+
+Copyright (c) 2026 Hiva Mohammadzadeh. All rights reserved.
+This software is proprietary. You must not use, copy, modify, or distribute it without written permission from the owner. See [LICENSE](LICENSE).

@@ -1,0 +1,35 @@
+Copyright (c) 2026 Hiva Mohammadzadeh. All rights reserved.
+
+PROPRIETARY LICENSE
+
+This software, CapAuth, and all related source code, documentation, designs,
+recordings, and other files in this repository (the "Software") are the
+exclusive property of Hiva Mohammadzadeh (the "Owner").
+
+1. No license is given. The Owner gives no license and no other right to the
+   Software, by implication, estoppel, or other means. The Owner keeps all
+   rights.
+
+2. Restrictions. Without the prior written permission of the Owner, you must
+   not:
+   a. use, run, or deploy the Software for any purpose;
+   b. copy, reproduce, or distribute the Software, in whole or in part;
+   c. modify, translate, or make derivative works from the Software;
+   d. sublicense, sell, rent, or transfer the Software;
+   e. use the Software, in whole or in part, to train, fine-tune, or evaluate
+      a machine learning model;
+   f. remove or change this notice or any copyright notice.
+
+3. Permitted access. You can read the Software where the Owner makes it
+   available. Access to the Software does not give you a right to use it.
+
+4. Permission. To ask for permission, contact the Owner. Permission is valid
+   only if the Owner gives it in writing.
+
+5. Termination. Any use against these terms is an infringement of the
+   Owner's rights. The Owner can take legal action.
+
+6. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY
+   CLAIM, DAMAGES, OR OTHER LIABILITY THAT COMES FROM THE SOFTWARE OR FROM
+   THE USE OF THE SOFTWARE.
